@@ -47,9 +47,9 @@ defmodule Challenge.UserRegistry do
 
   # User data functions
   # TODO: Check the default balance and currency
-  def create_user(user_id, balance \\ 100_000 * 100_000, currency \\ "USD") do
+  def create_user(user_id, balance \\ 100_000, currency \\ "USD") do
     if is_binary(user_id) and user_id != "" do
-      :ets.insert(
+      :ets.insert_new(
         @users_table,
         {user_id,
          %{

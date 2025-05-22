@@ -17,3 +17,5 @@ defmodule Challenge.Application do
     Supervisor.start_link(children, opts)
   end
 end
+
+# TODO ensure the wallet spec is actuallly foloowed

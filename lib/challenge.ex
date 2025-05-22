@@ -12,8 +12,13 @@ defmodule Challenge do
   """
   @spec start :: GenServer.server()
   def start do
-    {:ok, pid} = Challenge.Application.start(nil, nil)
-    pid
+    case Challenge.Application.start(nil, nil) do
+      {:ok, pid} -> pid
+      {:error, {:already_started, pid}} -> pid
+      # in case of named supervisor
+      {:error, {:already_started, _name, pid}} -> pid
+      other -> raise "Unexpected return from Application.start/2: #{inspect(other)}"
+    end
   end
 
   @doc """

@@ -65,3 +65,6 @@ If the points above are satisfied, a technical interview will be scheduled to di
 For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
+# TODO Use pipe operators wherever possible
+# Refactor all the tests to use helpers wherever applicable once done
+# Check snairty questions from notion
