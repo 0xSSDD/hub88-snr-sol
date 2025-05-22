@@ -2,7 +2,7 @@ defmodule Challenge.TransactionHandler do
   @moduledoc """
   Handles transaction processing logic.
   """
-  alias Challenge.{SignatureValidator, UserManager, UserRegistry, ErrorHandler}
+  alias Challenge.{UserManager, ErrorHandler, UserTransactionServer}
 
   @doc """
   Process a bet transaction.

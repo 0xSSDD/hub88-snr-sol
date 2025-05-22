@@ -9,7 +9,7 @@ defmodule Challenge.DataSupervisor do
   def init(_init_arg) do
     children = [
       # Registry for UserTransactionServer processes
-      {Registry, keys: :unique, name: Challenge.UserRegistry},
+      {Registry, keys: :unique, name: Challenge.ProcessRegistry},
 
       # ETS table manager
       Challenge.UserRegistry

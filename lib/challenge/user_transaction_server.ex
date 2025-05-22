@@ -14,13 +14,13 @@ defmodule Challenge.UserTransactionServer do
     GenServer.call(server, {:bet, params}, 10_000)
   end
 
-  def win(server) do
-    GenServer.call(server, :win, 10_000)
+  def win(server, params) do
+    GenServer.call(server, {:win, params}, 10_000)
   end
 
   # TODO: what is this?
   defp via_tuple(user_id) do
-    {:via, Registry, {Challenge.UserRegistry, user_id}}
+    {:via, Registry, {Challenge.ProcessRegistry, user_id}}
   end
 
   # Server callbacks
@@ -29,8 +29,15 @@ defmodule Challenge.UserTransactionServer do
     {:ok, %{user_id: user_id}}
   end
 
+  @impl true
   def handle_call({:win, params}, _from, %{user_id: user_id} = state) do
     result = handle_transaction(:win, user_id, params)
+    {:reply, result, state}
+  end
+
+  @impl true
+  def handle_call({:bet, params}, _from, %{user_id: user_id} = state) do
+    result = handle_transaction(:bet, user_id, params)
     {:reply, result, state}
   end
 
@@ -39,7 +46,7 @@ defmodule Challenge.UserTransactionServer do
 
     if UserRegistry.transaction_exists?(transaction_uuid) do
       # Transaction already processed - get existing result
-      {:ok, tx} = UserRegistry.get_transaction(transaction_uuid)
+      {:ok, _tx} = UserRegistry.get_transaction(transaction_uuid)
       {:ok, user} = UserRegistry.get_user(user_id)
 
       # Return consistent response from original processing

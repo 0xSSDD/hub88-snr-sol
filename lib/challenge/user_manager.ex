@@ -21,26 +21,16 @@ defmodule Challenge.UserManager do
   Gets or creates a UserTransactionServer for a user_id.
   """
   def get_user_server(user_id) do
-    # First try to find existing process
-    case Registry.lookup(Challenge.UserRegistry, user_id) do
+    # Use the renamed registry
+    case Registry.lookup(Challenge.ProcessRegistry, user_id) do
       [{pid, _}] ->
         pid
 
       [] ->
-        # calculate parition
-        partition =
-          :erlang.phash2(
-            user_id,
-            PartitionSupervisor.partitions(Challenge.PartitionSupervisor)
-          )
-
-        # Get the dynamic supervisor for this partition
-        dynamic_supervisor =
-          PartitionSupervisor.partition(Challenge.PartitionSupervisor, partition)
-
-        # Start child under the selected partition's dynamic supervisor
+        # Start the UserTransactionServer under the correct DynamicSupervisor partitioned by user_id,
+        # using the PartitionSupervisor defined in application.ex
         case DynamicSupervisor.start_child(
-               dynamic_supervisor,
+               {:via, PartitionSupervisor, {Challenge.PartitionSupervisor, user_id}},
                {Challenge.UserTransactionServer, user_id}
              ) do
           {:ok, pid} ->
@@ -49,11 +39,10 @@ defmodule Challenge.UserManager do
           {:error, {:already_started, pid}} ->
             pid
 
-          # Handle race condition where process was started between our lookup and start_child
+          # Handle race condition
           _ ->
-            case Registry.lookup(Challenge.UserRegistry, user_id) do
+            case Registry.lookup(Challenge.ProcessRegistry, user_id) do
               [{pid, _}] -> pid
-              # should never happen
               [] -> nil
             end
         end

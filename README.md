@@ -65,27 +65,3 @@ If the points above are satisfied, a technical interview will be scheduled to di
 For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
-```
-challenge/
-├── lib/
-│   ├── challenge.ex                   # Main API module
-│   ├── challenge/
-│   │   ├── application.ex             # Application supervisor (RootSupervisor)
-│   │   ├── data_supervisor.ex         # Supervises data-related processes
-│   │   ├── user_registry.ex           # ETS table management as a GenServer
-│   │   ├── user_manager.ex            # User creation and lookup
-│   │   ├── transaction_handler.ex     # Transaction business logic
-│   │   ├── user_transaction_server.ex # Per-user transaction process
-│   │   └── error_handler.ex           # Error response handling
-├── test/
-│   ├── challenge_test.exs             # Main API tests
-│   ├── integration/
-│   │   ├── concurrency_test.exs       # Tests for concurrent operations
-│   │   ├── idempotency_test.exs       # Tests for idempotent transactions
-│   │   └── fault_tolerance_test.exs   # Tests for system recovery
-│   └── unit/
-│       ├── user_registry_test.exs
-│       ├── transaction_handler_test.exs
-│       └── user_transaction_server_test.exs
-└── mix.exs
-```
