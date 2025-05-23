@@ -191,15 +191,7 @@ defmodule Challenge.UserTransactionServer do
          ) do
       {:ok, :new_transaction} ->
         # We successfully stored the transaction first, now update balance
-        case UserRegistry.update_balance(user_id, amount) do
-          {:ok, updated_user} ->
-            {:ok, updated_user}
-
-          {:error, reason} ->
-            # Balance update failed, but transaction is already stored
-            # This is a rare edge case - log and return error
-            {:error, reason}
-        end
+        UserRegistry.update_balance(user_id, amount)
 
       {:ok, :duplicate_transaction} ->
         # Another process stored this transaction while we were processing
