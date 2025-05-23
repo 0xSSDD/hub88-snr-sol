@@ -119,7 +119,7 @@ defmodule Challenge.TransactionHandler do
 
   # For win and rollback, we don't check for token validity
   defp validate_token(_body, :win), do: :ok
-  defp validate_token(_body, :rollback), do: :ok
+  defp validate_token(_body, _), do: :ok
 
   defp validate_game_code(%{game_code: game_code}) do
     if Challenge.UserRegistry.valid_game_code?(game_code),
