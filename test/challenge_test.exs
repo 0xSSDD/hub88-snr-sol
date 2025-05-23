@@ -108,15 +108,35 @@ defmodule ChallengeTest do
   describe "Challenge.bet/2" do
     setup do
       root_supervisor = Challenge.start()
-      Challenge.create_users(root_supervisor, ["user1"])
-      %{root_supervisor: root_supervisor, user_id: "user1"}
+      user_id = "user1"
+
+      # Create user
+      Challenge.create_users(root_supervisor, [user_id])
+
+      # Generate params with a known token
+      params = TestUtils.bet_params(user_id)
+
+      # Add the generated token to the registry
+      Challenge.UserRegistry.add_token(user_id, params.token) |> dbg()
+      IO.inspect(params.token, label: "Token in params")
+
+      IO.inspect(Challenge.UserRegistry.valid_token?(user_id, params.token),
+        label: "Is token valid in registry?"
+      )
+
+      # Set up the game code if needed
+      # Challenge.UserRegistry.set_user_game_code(user_id, params.token, params.game_code)
+
+      %{root_supervisor: root_supervisor, user_id: user_id, params: params}
     end
 
-    test "RS_OK: processes successful bet", %{root_supervisor: root_supervisor, user_id: user_id} do
-      params = TestUtils.bet_params(user_id)
+    test "RS_OK: processes successful bet", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id,
+      params: params
+    } do
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
 
       assert result.status == "RS_OK"
       assert result.user == user_id
@@ -130,7 +150,7 @@ defmodule ChallengeTest do
     # todo come back to this
     test "RS_ERROR_UNKNOWN for non-existent user", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: _user_id
     } do
       "ghost_user"
       |> TestUtils.bet_params()
@@ -172,7 +192,7 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_INVALID_GAME for invalid game_code", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: _user_id
     } do
       "user1"
       |> TestUtils.bet_params(%{game_code: "ont_whitejackclassic"})
@@ -182,7 +202,7 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_WRONG_CURRENCY for currency mismatch", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: _user_id
     } do
       "user1"
       |> TestUtils.bet_params(%{currency: "EUR"})
@@ -192,7 +212,7 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_WRONG_TYPES for a random currency", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: _user_id
     } do
       "user1"
       |> TestUtils.bet_params(%{currency: "DOG"})
@@ -202,7 +222,7 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_NOT_ENOUGH_MONEY for excessive bet", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: _user_id
     } do
       "user1"
       |> TestUtils.bet_params(%{amount: 1_000_000_000})
@@ -212,7 +232,7 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_USER_DISABLED for disabled user", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: _user_id
     } do
       :ok = Challenge.UserRegistry.disable_user("user1")
 

@@ -76,7 +76,6 @@ defmodule Challenge.UserRegistry do
            disabled: false
          }}
       )
-
     else
       # TODO: Not sure if this is the best way to handle this
       false
