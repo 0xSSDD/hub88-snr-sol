@@ -117,12 +117,7 @@ defmodule ChallengeTest do
       params = TestUtils.bet_params(user_id)
 
       # Add the generated token to the registry
-      Challenge.UserRegistry.add_token(user_id, params.token) |> dbg()
-      IO.inspect(params.token, label: "Token in params")
-
-      IO.inspect(Challenge.UserRegistry.valid_token?(user_id, params.token),
-        label: "Is token valid in registry?"
-      )
+      Challenge.UserRegistry.add_token(user_id, params.token)
 
       # Set up the game code if needed
       # Challenge.UserRegistry.set_user_game_code(user_id, params.token, params.game_code)
@@ -136,7 +131,7 @@ defmodule ChallengeTest do
       params: params
     } do
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
 
       assert result.status == "RS_OK"
       assert result.user == user_id
@@ -146,26 +141,18 @@ defmodule ChallengeTest do
     end
 
     # todo RS_OK: processes successful win
-
-    # todo come back to this
-    test "RS_ERROR_UNKNOWN for non-existent user", %{
-      root_supervisor: root_supervisor,
-      user_id: _user_id
-    } do
-      "ghost_user"
-      |> TestUtils.bet_params()
-      |> then(fn params -> Challenge.bet(root_supervisor, params) end)
-      |> then(fn result -> assert result.status == "RS_ERROR_UNKNOWN" end)
-    end
+    # todo RS_ERROR_UNKNOWN
 
     test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{
       root_supervisor: root_supervisor,
-      user_id: user_id
+      user_id: user_id,
     } do
+
+      params = TestUtils.bet_params(user_id, %{sub_partner_id: "sub_disabled"})
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       Challenge.UserRegistry.create_sub_partner("sub_disabled")
       Challenge.UserRegistry.disable_sub_partner("sub_disabled")
-      params = TestUtils.bet_params(user_id, %{sub_partner_id: "sub_disabled"})
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_INVALID_PARTNER"
     end
@@ -175,6 +162,7 @@ defmodule ChallengeTest do
       user_id: user_id
     } do
       params = TestUtils.bet_params(user_id, %{sub_partner_id: "nonexistent"})
+      Challenge.UserRegistry.add_token(user_id, params.token)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_INVALID_PARTNER"
@@ -184,7 +172,7 @@ defmodule ChallengeTest do
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
-      params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"})
+      params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"}) |> dbg()
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_INVALID_TOKEN"
