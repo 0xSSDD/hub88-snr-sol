@@ -3,9 +3,15 @@ defmodule Challenge.UserTransactionServerTest do
 
   setup do
     TestUtils.reset_test_environment()
+    supervisor = TestUtils.start_fresh_challenge()
     user_id = "user1"
     Challenge.UserRegistry.create_user(user_id)
     {:ok, pid} = Challenge.UserTransactionServer.start_link(user_id)
+
+    on_exit(fn ->
+      TestUtils.stop_challenge(supervisor)
+    end)
+
     %{user_id: user_id, server: pid}
   end
 

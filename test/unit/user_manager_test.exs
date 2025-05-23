@@ -3,7 +3,13 @@ defmodule Challenge.UserManagerTest do
 
   setup do
     TestUtils.reset_test_environment()
-    :ok
+    supervisor = TestUtils.start_fresh_challenge()
+
+    on_exit(fn ->
+      TestUtils.stop_challenge(supervisor)
+    end)
+
+    %{root_supervisor: supervisor}
   end
 
   test "create_users/2 creates users" do
