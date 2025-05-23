@@ -146,9 +146,8 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{
       root_supervisor: root_supervisor,
-      user_id: user_id,
+      user_id: user_id
     } do
-
       params = TestUtils.bet_params(user_id, %{sub_partner_id: "sub_disabled"})
       Challenge.UserRegistry.add_token(user_id, params.token)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
@@ -221,19 +220,20 @@ defmodule ChallengeTest do
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
       assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY"
-      assert result.balance == 100_000  # The user's actual balance
+      # The user's actual balance
+      assert result.balance == 100_000
     end
 
     test "RS_ERROR_USER_DISABLED for disabled user", %{
       root_supervisor: root_supervisor,
-      user_id: _user_id
+      user_id: user_id,
+      params: params
     } do
-      :ok = Challenge.UserRegistry.disable_user("user1")
+      :ok = Challenge.UserRegistry.disable_user(user_id)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
 
-      "user1"
-      |> TestUtils.bet_params()
-      |> then(fn params -> Challenge.bet(root_supervisor, params) end)
-      |> then(fn result -> assert result.status == "RS_ERROR_USER_DISABLED" end)
+      assert result.status == "RS_ERROR_USER_DISABLED"
     end
 
     test "RS_ERROR_TOKEN_EXPIRED for expired token", %{root_supervisor: root_supervisor} do

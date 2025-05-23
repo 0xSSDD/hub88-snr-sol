@@ -93,7 +93,10 @@ defmodule Challenge.UserTransactionServer do
 
         {:error, :not_enough_money} ->
           {:ok, user} = UserRegistry.get_user(user_id)
-          ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params, balance: user.balance)
+
+          ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params,
+            balance: user.balance
+          )
 
         {:error, _} ->
           ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
