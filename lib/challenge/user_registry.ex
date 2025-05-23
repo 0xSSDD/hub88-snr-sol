@@ -83,22 +83,23 @@ defmodule Challenge.UserRegistry do
   end
 
   # User operations
-  def create_user(user_id, balance \\ 100_000, currency \\ "USD") do
-    if is_binary(user_id) and user_id != "" do
-      user_data = %{
-        balance: balance,
-        currency: currency,
-        created_at: System.system_time(:millisecond),
-        disabled: false
-      }
+  def create_user(user_id, balance \\ 100_000, currency \\ "USD")
 
-      # Use insert_new for atomic creation (fails if user exists)
-      case :ets.insert_new(@users_table, {user_id, user_data}) do
-        true -> {:ok, user_data}
-        false -> {:error, :user_already_exists}
-      end
-    else
-      {:error, :invalid_user_id}
+  def create_user(user_id, _balance, _currency) when not is_binary(user_id) or user_id == "" do
+    {:error, :invalid_user_id}
+  end
+
+  def create_user(user_id, balance, currency) do
+    user_data = %{
+      balance: balance,
+      currency: currency,
+      created_at: System.system_time(:millisecond),
+      disabled: false
+    }
+
+    case :ets.insert_new(@users_table, {user_id, user_data}) do
+      true -> {:ok, user_data}
+      false -> {:error, :user_already_exists}
     end
   end
 
