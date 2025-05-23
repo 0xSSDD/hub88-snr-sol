@@ -50,7 +50,7 @@ defmodule Challenge.TransactionHandler do
          :ok <- validate_token(body, type),
          :ok <- validate_game_code(body),
          :ok <- validate_currency_format(body),
-         :ok <- validate_sub_partner_id(body) do
+         :ok <- validate_operator_and_sub_partner(body) do
       user_id = body.user
       user_server = UserManager.get_user_server(user_id)
 
@@ -127,6 +127,23 @@ defmodule Challenge.TransactionHandler do
   end
 
   defp validate_currency_format(_), do: {:error, "RS_ERROR_WRONG_TYPES"}
+
+  defp validate_operator_and_sub_partner(%{user: user_id} = body) do
+    # Check if operator (user) is disabled
+    case Challenge.UserRegistry.get_user(user_id) do
+      {:ok, %{disabled: true}} ->
+        {:error, "RS_ERROR_INVALID_PARTNER"}
+
+      {:ok, _user} ->
+        # Now check sub_partner_id if present
+        validate_sub_partner_id(body)
+
+      {:error, _} ->
+        :ok  # Let the rest of the pipeline handle unknown user
+    end
+  end
+
+  defp validate_operator_and_sub_partner(_), do: :ok
 
   defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id}) when is_binary(sub_partner_id) do
     cond do
