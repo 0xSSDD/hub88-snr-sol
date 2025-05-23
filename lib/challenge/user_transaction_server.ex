@@ -46,17 +46,22 @@ defmodule Challenge.UserTransactionServer do
 
     if UserRegistry.transaction_exists?(transaction_uuid) do
       # Transaction already processed - get existing result
-      {:ok, _tx} = UserRegistry.get_transaction(transaction_uuid)
+      {:ok, original_tx} = UserRegistry.get_transaction(transaction_uuid)
       {:ok, user} = UserRegistry.get_user(user_id)
 
-      # Return consistent response from original processing
-      %{
-        user: user_id,
-        status: "RS_OK",
-        request_uuid: params.request_uuid,
-        currency: user.currency,
-        balance: user.balance
-      }
+      # Check for duplicate with mismatched fields
+      if duplicate_transaction_mismatch?(original_tx, params) do
+        ErrorHandler.error_response(user_id, "RS_ERROR_DUPLICATE_TRANSACTION", params)
+      else
+        # Return consistent response from original processing
+        %{
+          user: user_id,
+          status: "RS_OK",
+          request_uuid: params.request_uuid,
+          currency: user.currency,
+          balance: user.balance
+        }
+      end
     else
       # New transaction - process it based on type
       case UserRegistry.get_user(user_id) do
@@ -70,6 +75,13 @@ defmodule Challenge.UserTransactionServer do
           ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
       end
     end
+  end
+
+  defp duplicate_transaction_mismatch?(original, incoming) do
+    # Compare all relevant fields
+    Enum.any?([:reference_transaction_uuid, :amount, :currency, :round, :user, :game_code], fn field ->
+      Map.get(original, field) != Map.get(incoming, field)
+    end)
   end
 
   # todo once done make this more idiomatic

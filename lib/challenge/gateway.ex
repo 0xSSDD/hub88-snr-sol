@@ -10,7 +10,7 @@ defmodule Challenge.Gateway do
   Handles a bet request, extracting the signature from headers.
   """
   def bet(server, body, headers) do
-    signature = get_signature(headers) |> dbg()
+    signature = get_signature(headers)
     TransactionHandler.bet(server, body, signature)
   end
 
@@ -18,7 +18,7 @@ defmodule Challenge.Gateway do
   Handles a win request, extracting the signature from headers.
   """
   def win(server, body, headers) do
-    signature = get_signature(headers) |> dbg()
+    signature = get_signature(headers)
     TransactionHandler.win(server, body, signature)
   end
 

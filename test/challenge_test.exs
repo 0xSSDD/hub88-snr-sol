@@ -261,17 +261,19 @@ defmodule ChallengeTest do
     end
 
     test "RS_ERROR_DUPLICATE_TRANSACTION for same UUID, different params", %{
-      root_supervisor: root_supervisor
+      root_supervisor: root_supervisor,
+      user_id: user_id
     } do
-      "user1"
-      |> TestUtils.bet_params(%{amount: 5})
-      |> then(fn params1 ->
-        Challenge.bet(root_supervisor, params1)
+      params = TestUtils.bet_params(user_id, %{amount: 5})
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      Challenge.Gateway.bet(root_supervisor, params, headers)
 
-        %{params1 | amount: 10}
-        |> Challenge.bet(root_supervisor)
-        |> then(fn result -> assert result.status == "RS_ERROR_DUPLICATE_TRANSACTION" end)
-      end)
+      # Change amount, but keep transaction_uuid the same
+      params2 = %{params | amount: 10}
+      headers2 = %{"X-Hub88-Signature" => TestUtils.valid_signature(params2)}
+      result = Challenge.Gateway.bet(root_supervisor, params2, headers2) |> dbg()
+      assert result.status == "RS_ERROR_DUPLICATE_TRANSACTION"
     end
 
     test "RS_ERROR_LIMIT_REACHED for rate limit", %{root_supervisor: root_supervisor} do
