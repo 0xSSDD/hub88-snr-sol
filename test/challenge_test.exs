@@ -129,7 +129,7 @@ defmodule ChallengeTest do
       %{root_supervisor: root_supervisor, user_id: user_id, params: params}
     end
 
-    test "RS_OK: processes successful bet", %{
+    test "RS_OK(1): processes successful bet", %{
       root_supervisor: root_supervisor,
       user_id: user_id,
       params: params
@@ -144,9 +144,9 @@ defmodule ChallengeTest do
       assert result.request_uuid == params.request_uuid
     end
 
-    # TODO RS_ERROR_UNKNOWN
+    # TODO 2.RS_ERROR_UNKNOWN
 
-    test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{
+    test "RS_ERROR_INVALID_PARTNER(3) for disabled sub_partner_id", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -159,7 +159,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_PARTNER"
     end
 
-    test "RS_ERROR_INVALID_PARTNER for invalid sub_partner_id", %{
+    test "RS_ERROR_INVALID_PARTNER(3) for invalid sub_partner_id", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -170,7 +170,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_PARTNER"
     end
 
-    test "RS_ERROR_INVALID_TOKEN for invalid token", %{
+    test "RS_ERROR_INVALID_TOKEN(4) for invalid token", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -180,7 +180,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_TOKEN"
     end
 
-    test "RS_ERROR_INVALID_GAME for invalid game_code", %{
+    test "RS_ERROR_INVALID_GAME(5) for invalid game_code", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -191,7 +191,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_GAME"
     end
 
-    test "RS_ERROR_WRONG_CURRENCY for currency mismatch", %{
+    test "RS_ERROR_WRONG_CURRENCY(6) for currency mismatch", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -203,7 +203,7 @@ defmodule ChallengeTest do
     end
 
 
-    test "RS_ERROR_NOT_ENOUGH_MONEY for excessive bet", %{
+    test "RS_ERROR_NOT_ENOUGH_MONEY(7) for excessive bet", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -225,7 +225,7 @@ defmodule ChallengeTest do
       IO.inspect(user_after, label: "User after bet")
     end
 
-    test "RS_ERROR_USER_DISABLED for disabled user", %{
+    test "RS_ERROR_USER_DISABLED(8) for disabled user", %{
       root_supervisor: root_supervisor,
       user_id: user_id,
       params: params
@@ -237,7 +237,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_USER_DISABLED"
     end
 
-    test "RS_ERROR_INVALID_SIGNATURE for invalid signature", %{
+    test "RS_ERROR_INVALID_SIGNATURE(9) for invalid signature", %{
       root_supervisor: root_supervisor,
       user_id: user_id,
       params: params
@@ -247,9 +247,9 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_SIGNATURE"
     end
 
-    # TODO RS_ERROR_TOKEN_EXPIRED as it has some edge cases with Win and rollbac
+    # TODO 10. RS_ERROR_TOKEN_EXPIRED as it has some edge cases with Win and rollbac
 
-    test "RS_ERROR_WRONG_SYNTAX for missing required fields", %{
+    test "RS_ERROR_WRONG_SYNTAX(11) for missing required fields", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -260,7 +260,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_WRONG_SYNTAX"
     end
 
-    test "RS_ERROR_WRONG_TYPES for a random currency", %{
+    test "RS_ERROR_WRONG_TYPES(12) for a random currency", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -271,7 +271,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_WRONG_TYPES"
     end
 
-    test "RS_ERROR_DUPLICATE_TRANSACTION for same UUID, different params", %{
+    test "RS_ERROR_DUPLICATE_TRANSACTION(13) for same UUID, different params", %{
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
@@ -287,7 +287,7 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_DUPLICATE_TRANSACTION"
     end
 
-    # TODO:RS_ERROR_LIMIT_REACHED
+    # TODO: RS_ERROR_LIMIT_REACHED(15)
   end
 
   describe "Challenge.win/2" do
@@ -305,7 +305,7 @@ defmodule ChallengeTest do
       %{root_supervisor: root_supervisor, user_id: user_id, bet_params: params}
     end
 
-    test "RS_OK for valid win", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
+    test "RS_OK(1) for valid win", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
       # Place a bet
       bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
       bet_result = Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
@@ -329,7 +329,7 @@ defmodule ChallengeTest do
       assert win_result.currency == bet_params.currency
     end
 
-    test "RS_ERROR_TRANSACTION_DOES_NOT_EXIST for missing reference_transaction_uuid", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
+    test "RS_ERROR_TRANSACTION_DOES_NOT_EXIST(14) for missing reference_transaction_uuid", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
       win_params =
         TestUtils.win_params(user_id, "nonexistent_bet_uuid", %{
           token: bet_params.token,
