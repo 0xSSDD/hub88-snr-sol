@@ -47,6 +47,10 @@ defmodule Challenge.UserRegistryTest do
     assert {:error, :transaction_not_found} = Challenge.UserRegistry.get_transaction("missing")
   end
 
+  test "get_transaction/1 returns error for nil transaction_uuid" do
+    assert {:error, :transaction_not_found} = Challenge.UserRegistry.get_transaction(nil)
+  end
+
   test "increment_user_limit/1 and get_daily_request_limit/0" do
     user_id = "user1"
     today = Date.utc_today()
