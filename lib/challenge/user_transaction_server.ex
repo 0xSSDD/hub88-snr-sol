@@ -31,7 +31,6 @@ defmodule Challenge.UserTransactionServer do
     GenServer.call(server, {:win, params})
   end
 
-  # TODO: what is this?
   defp via_tuple(user_id) do
     {:via, Registry, {Challenge.ProcessRegistry, user_id}}
   end
@@ -87,12 +86,8 @@ defmodule Challenge.UserTransactionServer do
           {ErrorHandler.error_response(user_id, "RS_ERROR_USER_DISABLED", params), state}
 
         {:ok, user} ->
-          # Check balance for bets BEFORE processing
-          if type == :bet && user.balance < params.amount do
-            {ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params, balance: user.balance), state}
-          else
-            process_new_transaction(type, user_id, user, params, state)
-          end
+          # FIXED: Remove the stale balance check - let update_balance handle it atomically
+          process_new_transaction(type, user_id, user, params, state)
 
         {:error, :user_not_found} ->
           {ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params), state}
@@ -115,6 +110,7 @@ defmodule Challenge.UserTransactionServer do
       {ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params), state}
     else
       amount = -params.amount
+      # FIXED: The insufficient funds check now happens atomically in update_balance
       case UserRegistry.update_balance(user_id, amount) do
         {:ok, updated_user} ->
           UserRegistry.store_transaction(Map.put(params, :type, :bet))
@@ -130,6 +126,11 @@ defmodule Challenge.UserTransactionServer do
             },
             new_state
           }
+
+        {:error, :not_enough_money} ->
+          # Get current balance for error response
+          {:ok, current_user} = UserRegistry.get_user(user_id)
+          {ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params, balance: current_user.balance), state}
 
         {:error, _} ->
           {ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params), state}
