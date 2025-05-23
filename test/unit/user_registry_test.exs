@@ -66,6 +66,18 @@ defmodule Challenge.UserRegistryTest do
     refute Challenge.UserRegistry.valid_token?("user1", "token2")
   end
 
+  test "add_token/2 returns error for non-binary user_id or token" do
+    assert {:error, :wrong_types} = Challenge.UserRegistry.add_token(123, "token1")
+    assert {:error, :wrong_types} = Challenge.UserRegistry.add_token("user1", 123)
+    assert {:error, :wrong_types} = Challenge.UserRegistry.add_token(:atom, :atom)
+  end
+
+  test "valid_token?/2 returns false for non-binary user_id or token" do
+    refute Challenge.UserRegistry.valid_token?(123, "token1")
+    refute Challenge.UserRegistry.valid_token?("user1", 123)
+    refute Challenge.UserRegistry.valid_token?(:atom, :atom)
+  end
+
   test "add_game_code/1 and valid_game_code?/1" do
     Challenge.UserRegistry.add_game_code("game1")
     assert Challenge.UserRegistry.valid_game_code?("game1")

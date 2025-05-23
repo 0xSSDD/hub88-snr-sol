@@ -220,9 +220,15 @@ defmodule Challenge.UserRegistry do
   end
 
   # Token management
+  def add_token(user_id, token) when not is_binary(user_id) or not is_binary(token) do
+    {:error, :wrong_types}
+  end
+
   def add_token(user_id, token) when is_binary(user_id) and is_binary(token) do
     :ets.insert(@tokens_table, {{user_id, token}, true})
   end
+
+  def valid_token?(user_id, token) when not is_binary(user_id) or not is_binary(token), do: false
 
   def valid_token?(user_id, token) when is_binary(user_id) and is_binary(token) do
     :ets.member(@tokens_table, {user_id, token})
