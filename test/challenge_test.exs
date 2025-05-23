@@ -119,8 +119,9 @@ defmodule ChallengeTest do
       # Add the generated token to the registry
       Challenge.UserRegistry.add_token(user_id, params.token)
 
-      # Set up the game code if needed
-      # Challenge.UserRegistry.set_user_game_code(user_id, params.token, params.game_code)
+      # Since we dont have access to /games/list
+      # we add ont_blackjackclassic to the registry manually
+      Challenge.UserRegistry.add_game_code(params.game_code)
 
       %{root_supervisor: root_supervisor, user_id: user_id, params: params}
     end
@@ -172,7 +173,7 @@ defmodule ChallengeTest do
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
-      params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"}) |> dbg()
+      params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"})
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_INVALID_TOKEN"
@@ -180,12 +181,13 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_INVALID_GAME for invalid game_code", %{
       root_supervisor: root_supervisor,
-      user_id: _user_id
+      user_id: user_id
     } do
-      "user1"
-      |> TestUtils.bet_params(%{game_code: "ont_whitejackclassic"})
-      |> then(fn params -> Challenge.bet(root_supervisor, params) end)
-      |> then(fn result -> assert result.status == "RS_ERROR_INVALID_GAME" end)
+      params = TestUtils.bet_params(user_id, %{game_code: "ont_whitejackclassic"})
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_INVALID_GAME"
     end
 
     test "RS_ERROR_WRONG_CURRENCY for currency mismatch", %{

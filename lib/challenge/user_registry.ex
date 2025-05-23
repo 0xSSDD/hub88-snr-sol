@@ -9,6 +9,7 @@ defmodule Challenge.UserRegistry do
   @processed_transactions_table :processed_transactions
   @sub_partners_table :sub_partners
   @tokens_table :tokens
+  @game_codes_table :game_codes
 
   # Client API
   def start_link(_) do
@@ -52,6 +53,14 @@ defmodule Challenge.UserRegistry do
     ])
 
     :ets.new(@tokens_table, [
+      :set,
+      :public,
+      :named_table,
+      {:read_concurrency, true},
+      {:write_concurrency, true}
+    ])
+
+    :ets.new(@game_codes_table, [
       :set,
       :public,
       :named_table,
@@ -188,5 +197,21 @@ defmodule Challenge.UserRegistry do
 
   def valid_token?(user_id, token) when is_binary(user_id) and is_binary(token) do
     :ets.member(@tokens_table, {user_id, token})
+  end
+
+  def add_game_code(game_code) do
+    :ets.insert(:game_codes, {game_code, true})
+  end
+
+  def remove_game_code(game_code) do
+    :ets.delete(:game_codes, game_code)
+  end
+
+  def valid_game_code?(game_code) do
+    :ets.member(:game_codes, game_code)
+  end
+
+  def list_game_codes do
+    :ets.tab2list(:game_codes) |> Enum.map(fn {code, _} -> code end)
   end
 end
