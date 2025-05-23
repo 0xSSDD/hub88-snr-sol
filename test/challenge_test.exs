@@ -248,12 +248,15 @@ defmodule ChallengeTest do
 
     # TODO RS_ERROR_TOKEN_EXPIRED as it has some edge cases with Win and rollbac
 
-    test "RS_ERROR_WRONG_SYNTAX for missing required fields", %{root_supervisor: root_supervisor} do
-      "user1"
-      |> TestUtils.bet_params()
+    test "RS_ERROR_WRONG_SYNTAX for missing required fields", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id
+    } do
+      params = TestUtils.bet_params(user_id)
       |> Map.drop([:transaction_uuid])
-      |> Challenge.bet(root_supervisor)
-      |> then(fn result -> assert result.status == "RS_ERROR_WRONG_SYNTAX" end)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_WRONG_SYNTAX"
     end
 
     test "RS_ERROR_WRONG_TYPES for wrong amount type", %{root_supervisor: root_supervisor} do
