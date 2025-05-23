@@ -55,7 +55,8 @@ defmodule Challenge.UserRegistry do
          %{
            balance: balance,
            currency: currency,
-           created_at: System.system_time(:millisecond)
+           created_at: System.system_time(:millisecond),
+           disabled: false
          }}
       )
     else
@@ -120,6 +121,17 @@ defmodule Challenge.UserRegistry do
       GenServer.call(__MODULE__, {:update_balance, user_id, amount})
     catch
       :exit, _ -> {:error, :timeout}
+    end
+  end
+
+  def disable_user(user_id) do
+    case :ets.lookup(@users_table, user_id) do
+      [{^user_id, user_data}] ->
+        :ets.insert(@users_table, {user_id, Map.put(user_data, :disabled, true)})
+        :ok
+
+      [] ->
+        {:error, :user_not_found}
     end
   end
 end

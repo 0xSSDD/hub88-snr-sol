@@ -11,11 +11,11 @@ defmodule Challenge.UserTransactionServer do
   end
 
   def bet(server, params) do
-    GenServer.call(server, {:bet, params}, 10_000)
+    GenServer.call(server, {:bet, params})
   end
 
   def win(server, params) do
-    GenServer.call(server, {:win, params}, 10_000)
+    GenServer.call(server, {:win, params})
   end
 
   # TODO: what is this?
@@ -60,6 +60,9 @@ defmodule Challenge.UserTransactionServer do
     else
       # New transaction - process it based on type
       case UserRegistry.get_user(user_id) do
+        {:ok, %{disabled: true}} ->
+          ErrorHandler.error_response(user_id, "RS_ERROR_USER_DISABLED", params)
+
         {:ok, user} ->
           process_new_transaction(type, user_id, user, params)
 
@@ -69,35 +72,40 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  # todo once done make this more idiomatic
   defp process_new_transaction(:bet, user_id, user, params) do
-    # Check currency match
     if user.currency != params.currency do
       ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
-    end
+    else
+      amount = -params.amount
 
-    # Debit amount
-    # negative for bet
-    amount = -params.amount
+      case UserRegistry.update_balance(user_id, amount) do
+        {:ok, updated_user} ->
+          UserRegistry.store_transaction(Map.put(params, :type, :bet))
 
-    case UserRegistry.update_balance(user_id, amount) do
-      {:ok, updated_user} ->
-        # Store the transaction
-        UserRegistry.store_transaction(Map.put(params, :type, :bet))
-        # Return success response
-        # Return success response
-        %{
-          user: user_id,
-          status: "RS_OK",
-          request_uuid: params.request_uuid,
-          currency: updated_user.currency,
-          balance: updated_user.balance
-        }
+          %{
+            user: user_id,
+            status: "RS_OK",
+            request_uuid: params.request_uuid,
+            currency: updated_user.currency,
+            balance: updated_user.balance
+          }
 
-      {:error, :not_enough_money} ->
-        ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params)
+        {:error, :not_enough_money} ->
+          # Fetch the current balance to include in the error response
+          {:ok, user} = UserRegistry.get_user(user_id)
 
-      {:error, _} ->
-        ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
+          %{
+            user: user_id,
+            status: "RS_ERROR_NOT_ENOUGH_MONEY",
+            request_uuid: params.request_uuid,
+            currency: user.currency,
+            balance: user.balance
+          }
+
+        {:error, _} ->
+          ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
+      end
     end
   end
 

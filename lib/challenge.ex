@@ -2,9 +2,14 @@
 defmodule Challenge do
   @moduledoc """
   Hub88 Operator Wallet API implementation.
+
+  NOTE: The public API matches the required spec:
+    - bet(server, body)
+    - win(server, body)
+
   """
 
-  alias Challenge.{UserManager, TransactionHandler}
+  alias Challenge.{UserManager, Gateway}
 
   @doc """
   Start a linked and isolated supervision tree and return the root server that
@@ -39,7 +44,9 @@ defmodule Challenge do
   """
   @spec bet(server :: GenServer.server(), body :: map) :: map
   def bet(server, body) do
-    TransactionHandler.bet(server, body)
+    # For backward compatibility, handle both header and body signature
+    headers = %{"x-hub88-signature" => Map.get(body, :signature)}
+    Gateway.bet(server, body, headers)
   end
 
   @doc """
@@ -50,6 +57,8 @@ defmodule Challenge do
   """
   @spec win(server :: GenServer.server(), body :: map) :: map
   def win(server, body) do
-    TransactionHandler.win(server, body)
+    # For backward compatibility, handle both header and body signature
+    headers = %{"x-hub88-signature" => Map.get(body, :signature)}
+    Gateway.win(server, body, headers)
   end
 end

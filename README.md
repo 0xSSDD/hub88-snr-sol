@@ -65,6 +65,10 @@ If the points above are satisfied, a technical interview will be scheduled to di
 For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
+# Add credo and then remove it before submitting it
+# TODO Ensure right http codes are sent https://docs.hub88.io/developer-docs/operator-api-reference/operator-api-overview/error-codes
+# TODO: check if Retry policy for post transaction/bet is done
+# TODO: Test in challenge/test for RS_ Invalid_TOKEN
 # TODO Use pipe operators wherever possible
 # Refactor all the tests to use helpers wherever applicable once done
 # Check snairty questions from notion
