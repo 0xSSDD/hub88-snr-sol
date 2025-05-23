@@ -252,7 +252,6 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_INVALID_SIGNATURE(9) for invalid signature", %{
       root_supervisor: root_supervisor,
-      user_id: user_id,
       params: params
     } do
       headers = %{"X-Hub88-Signature" => "invalid_signature"}
@@ -260,7 +259,16 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_SIGNATURE"
     end
 
-    # TODO 10. RS_ERROR_TOKEN_EXPIRED as it has some edge cases with Win and rollbac
+    test "RS_ERROR_TOKEN_EXPIRED(10) for expired token", %{root_supervisor: root_supervisor, user_id: user_id} do
+      params = TestUtils.bet_params(user_id, %{token: "expired"})
+      # No need to add this token to the registry, as "expired" is a special case
+      Challenge.UserRegistry.add_game_code(params.game_code)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_TOKEN_EXPIRED"
+      assert result.user == user_id
+      assert result.request_uuid == params.request_uuid
+    end
 
     test "RS_ERROR_WRONG_SYNTAX(11) for missing required fields", %{
       root_supervisor: root_supervisor,
@@ -356,6 +364,25 @@ defmodule ChallengeTest do
       assert win_result.status == "RS_ERROR_TRANSACTION_DOES_NOT_EXIST"
       assert win_result.user == user_id
       assert win_result.request_uuid == win_params.request_uuid
+    end
+
+    test "RS_ERROR_TOKEN_EXPIRED(10) does NOT check for token expiry on win", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
+      # Place a bet with a valid token
+      bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
+      bet_result = Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
+      assert bet_result.status == "RS_OK"
+
+      # Now win with token: "expired"
+      win_params =
+        TestUtils.win_params(user_id, bet_params.transaction_uuid, %{
+          token: "expired",
+          game_code: bet_params.game_code,
+          currency: bet_params.currency
+        })
+      win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+      win_result = Challenge.Gateway.win(root_supervisor, win_params, win_headers)
+      # Should still succeed!
+      assert win_result.status == "RS_OK"
     end
   end
 
