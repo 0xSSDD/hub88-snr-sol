@@ -149,35 +149,37 @@ defmodule Challenge.UserTransactionServer do
   end
 
   defp execute_transaction(:win, user_id, user, params) do
-    # Check reference transaction if provided
     case validate_reference_transaction(params) do
       :ok ->
-        if user.currency != params.currency do
-          ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
-        else
-          # Credit amount
-          case process_transaction_atomically(user_id, params, params.amount) do
-            {:ok, updated_user} ->
-              %{
-                user: user_id,
-                status: "RS_OK",
-                request_uuid: params.request_uuid,
-                currency: updated_user.currency,
-                balance: updated_user.balance
-              }
-
-            {:error, :duplicate_transaction} ->
-              # Handle race condition
-              {:ok, stored_tx} = UserRegistry.get_transaction(params.transaction_uuid)
-              handle_duplicate_transaction(user_id, params, stored_tx)
-
-            {:error, _} ->
-              ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
-          end
-        end
-
+        execute_win_transaction(user_id, user, params)
       {:error, error_code} ->
         ErrorHandler.error_response(user_id, error_code, params)
+    end
+  end
+
+  defp execute_win_transaction(user_id, user, params) when user.currency != params.currency do
+    ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
+  end
+
+  defp execute_win_transaction(user_id, user, params) when user.currency == params.currency do
+    # Credit amount
+    case process_transaction_atomically(user_id, params, params.amount) do
+      {:ok, updated_user} ->
+        %{
+          user: user_id,
+          status: "RS_OK",
+          request_uuid: params.request_uuid,
+          currency: updated_user.currency,
+          balance: updated_user.balance
+        }
+
+      {:error, :duplicate_transaction} ->
+        # Handle race condition
+        {:ok, stored_tx} = UserRegistry.get_transaction(params.transaction_uuid)
+        handle_duplicate_transaction(user_id, params, stored_tx)
+
+      {:error, _} ->
+        ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
     end
   end
 
