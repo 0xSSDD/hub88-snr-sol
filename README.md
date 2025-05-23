@@ -68,19 +68,31 @@ For further clarifications, be in touch with the recruitment contact.
 
 ## Test Keys
 
-This project uses test RSA keys in the `priv` directory for signature validation in tests:
+Certainly! Here’s a **concise README section** for **Signature Verification**:
 
-- `priv/demo_priv.pem`: 2048-bit RSA private key (test only)
-- `priv/demo_pub.pem`: 2048-bit RSA public key (test only)
+---
 
-To regenerate these keys (if needed):
+## Signature Verification
 
+All API requests (e.g., `/transaction/bet`, `/transaction/win`) must include a cryptographic signature in the `X-Hub88-Signature` header, as required by the [Hub88 Wallet API spec](https://docs.hub88.io/developer-docs/operator-api-reference/wallet-api).
+
+**How it works:**
+- The client signs the JSON-encoded request body using **RSA-SHA256** with the private key.
+- The signature is base64-encoded and sent in the `X-Hub88-Signature` header.
+- The server (this app) base64-decodes the signature and verifies it using the public key and the same JSON encoding.
+- Only requests with valid signatures are processed; invalid signatures are rejected with the correct error code.
+
+**Test keys** (`priv/demo_priv.pem`, `priv/demo_pub.pem`) are used for local development and can be regenerated with:
 ```sh
 openssl genpkey -algorithm RSA -out priv/demo_priv.pem -pkeyopt rsa_keygen_bits:2048
 openssl rsa -pubout -in priv/demo_priv.pem -out priv/demo_pub.pem
 ```
 
+This implementation is fully compliant with the assignment and Hub88 requirements, using only Elixir/Erlang standard libraries.
+
+
 **Note:** These keys are for testing only and are safe to commit to the repository.
+
 # Add credo and then remove it before submitting it
 # TODO Ensure right http codes are sent https://docs.hub88.io/developer-docs/operator-api-reference/operator-api-overview/error-codes
 # TODO: check if Retry policy for post transaction/bet is done

@@ -112,19 +112,6 @@ defmodule ChallengeTest do
       %{root_supervisor: root_supervisor, user_id: "user1"}
     end
 
-    test "processes successful bet with signature in body", %{root_supervisor: root_supervisor, user_id: user_id} do
-      params = TestUtils.bet_params(user_id)
-      params = Map.put(params, :signature, TestUtils.valid_signature())
-
-      result = Challenge.bet(root_supervisor, params)
-
-      assert result.status == "RS_OK"
-      assert result.user == user_id
-      assert result.balance == 100_000 - 5
-      assert result.currency == "USD"
-      assert result.request_uuid == params.request_uuid
-    end
-
     test "processes successful bet with signature in headers", %{root_supervisor: root_supervisor, user_id: user_id} do
       params = TestUtils.bet_params(user_id)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
