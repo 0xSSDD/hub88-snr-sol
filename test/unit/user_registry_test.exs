@@ -50,7 +50,7 @@ defmodule Challenge.UserRegistryTest do
   test "increment_user_limit/1 and get_daily_request_limit/0" do
     user_id = "user1"
     today = Date.utc_today()
-    key = {user_id, today}
+    _key = {user_id, today}
     assert Challenge.UserRegistry.increment_user_limit(user_id) == 1
     assert Challenge.UserRegistry.increment_user_limit(user_id) == 2
     assert Challenge.UserRegistry.get_daily_request_limit() == 1000
