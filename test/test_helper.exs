@@ -1,6 +1,15 @@
 ExUnit.start()
 
 defmodule TestUtils do
+  @moduledoc """
+  Test utilities for the Challenge application.
+  Includes helpers for generating test data and cryptographic signatures.
+  """
+
+  # Load test keys from priv directory
+  @test_private_key File.read!("priv/demo_priv.pem")
+  @test_public_key File.read!("priv/demo_pub.pem")
+
   @doc """
   Generates a random 16-byte UUID string in standard 8-4-4-4-12 format.
   """
@@ -71,12 +80,45 @@ defmodule TestUtils do
   end
 
   @doc """
-  Returns a valid signature (mimics a valid X-Hub88-Signature header).
+  Generates a valid RSA-SHA256 signature for the given payload.
+  Uses the test private key to sign the JSON-encoded payload.
   """
-  def valid_signature, do: "good"
+  def valid_signature(payload \\ %{test: "data"}) do
+    payload
+    |> Jason.encode!()
+    |> sign_payload()
+    |> Base.encode64()
+  end
 
   @doc """
-  Returns an invalid signature (mimics a bad X-Hub88-Signature header).
+  Returns an invalid signature (for testing error cases).
   """
   def invalid_signature, do: "bad"
+
+  @doc """
+  Returns a map with both the payload and its valid signature.
+  Useful for testing the complete request flow.
+  """
+  def signed_payload(payload) do
+    signature = valid_signature(payload)
+    {payload, signature}
+  end
+
+  # Private helpers for signature generation
+
+  defp sign_payload(payload) do
+    [pem_entry] = :public_key.pem_decode(@test_private_key)
+    private_key = :public_key.pem_entry_decode(pem_entry)
+    :public_key.sign(payload, :sha256, private_key)
+  end
+
+  @doc """
+  Returns the test public key for use in tests.
+  """
+  def test_public_key, do: @test_public_key
+
+  @doc """
+  Returns the test private key for use in tests.
+  """
+  def test_private_key, do: @test_private_key
 end

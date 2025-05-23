@@ -21,3 +21,7 @@ challenge-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Don't ignore test keys
+!priv/demo_priv.pem
+!priv/demo_pub.pem

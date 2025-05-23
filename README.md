@@ -65,6 +65,22 @@ If the points above are satisfied, a technical interview will be scheduled to di
 For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
+
+## Test Keys
+
+This project uses test RSA keys in the `priv` directory for signature validation in tests:
+
+- `priv/demo_priv.pem`: 2048-bit RSA private key (test only)
+- `priv/demo_pub.pem`: 2048-bit RSA public key (test only)
+
+To regenerate these keys (if needed):
+
+```sh
+openssl genpkey -algorithm RSA -out priv/demo_priv.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa -pubout -in priv/demo_priv.pem -out priv/demo_pub.pem
+```
+
+**Note:** These keys are for testing only and are safe to commit to the repository.
 # Add credo and then remove it before submitting it
 # TODO Ensure right http codes are sent https://docs.hub88.io/developer-docs/operator-api-reference/operator-api-overview/error-codes
 # TODO: check if Retry policy for post transaction/bet is done

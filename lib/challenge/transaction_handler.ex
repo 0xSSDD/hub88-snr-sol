@@ -26,7 +26,7 @@ defmodule Challenge.TransactionHandler do
   @doc """
   Process a bet transaction.
   """
-  def bet(server, body, signature) do
+  def bet(_server, body, signature) do
     process_transaction(:bet, body, signature)
   end
 

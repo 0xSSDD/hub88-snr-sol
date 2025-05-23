@@ -7,7 +7,11 @@ defmodule Challenge.MixProject do
       version: "0.1.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      files_to_include: [
+        "priv/demo_priv.pem",
+        "priv/demo_pub.pem"
+      ]
     ]
   end
 
