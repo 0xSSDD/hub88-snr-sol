@@ -1,4 +1,5 @@
 ExUnit.start()
+Application.put_env(:challenge, :public_key, File.read!("priv/demo_pub.pem"))
 
 defmodule TestUtils do
   @moduledoc """
@@ -84,8 +85,9 @@ defmodule TestUtils do
   Uses the test private key to sign the JSON-encoded payload.
   """
   def valid_signature(payload \\ %{test: "data"}) do
-    payload
-    |> Jason.encode!()
+    json = Jason.encode!(payload)
+    IO.inspect(json, label: "JSON to sign")
+    json
     |> sign_payload()
     |> Base.encode64()
   end

@@ -127,9 +127,9 @@ defmodule ChallengeTest do
 
     test "processes successful bet with signature in headers", %{root_supervisor: root_supervisor, user_id: user_id} do
       params = TestUtils.bet_params(user_id)
-      headers = %{"x-hub88-signature" => TestUtils.valid_signature()}
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
 
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
 
       assert result.status == "RS_OK"
       assert result.user == user_id

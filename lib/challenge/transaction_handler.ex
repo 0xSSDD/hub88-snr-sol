@@ -33,7 +33,7 @@ defmodule Challenge.TransactionHandler do
   @doc """
   Process a win transaction.
   """
-  def win(server, body, signature) do
+  def win(_server, body, signature) do
     process_transaction(:win, body, signature)
   end
 
