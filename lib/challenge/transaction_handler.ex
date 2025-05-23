@@ -21,7 +21,6 @@ defmodule Challenge.TransactionHandler do
   GYD INR LBP ARS MXN CLP BNB CNY KHR LAK HRK BZD SSP XOF X5T MRO NPR mBTC
 )
 
-  @valid_game_codes ["ont_blackjackclassic"]
 
   @doc """
   Process a bet transaction.
@@ -126,7 +125,7 @@ defmodule Challenge.TransactionHandler do
   defp validate_token(_body, _), do: :ok
 
   defp validate_game_code(%{game_code: game_code}) do
-    if game_code in @valid_game_codes, do: :ok, else: {:error, "RS_ERROR_INVALID_GAME"}
+    if Challenge.UserRegistry.valid_game_code?(game_code), do: :ok, else: {:error, "RS_ERROR_INVALID_GAME"}
   end
 
   defp validate_game_code(_), do: {:error, "RS_ERROR_INVALID_GAME"}
