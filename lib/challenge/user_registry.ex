@@ -11,6 +11,7 @@ defmodule Challenge.UserRegistry do
   @sub_partners_table :sub_partners
   @tokens_table :tokens
   @game_codes_table :game_codes
+  @user_limits_table :user_limits
 
   # Client API
   def start_link(_) do
@@ -62,6 +63,15 @@ defmodule Challenge.UserRegistry do
     ])
 
     :ets.new(@game_codes_table, [
+      :set,
+      :public,
+      :named_table,
+      {:read_concurrency, true},
+      {:write_concurrency, true}
+    ])
+
+    # Add a table for daily request limits
+    :ets.new(:user_limits, [
       :set,
       :public,
       :named_table,
@@ -268,5 +278,18 @@ defmodule Challenge.UserRegistry do
     rescue
       _ -> {:error, :tables_missing}
     end
+  end
+
+  # Configurable daily request limit
+  # Default to 1000 requests per day
+  def get_daily_request_limit do
+    Application.get_env(:challenge, :daily_request_limit, 1000)
+  end
+
+  # Daily request limit helpers
+  def increment_user_limit(user_id) do
+    today = Date.utc_today()
+    key = {user_id, today}
+    :ets.update_counter(@user_limits_table, key, {2, 1}, {key, 0})
   end
 end

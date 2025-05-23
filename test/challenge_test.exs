@@ -308,7 +308,28 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_DUPLICATE_TRANSACTION"
     end
 
-    # TODO: RS_ERROR_LIMIT_REACHED(15)
+    test "RS_ERROR_LIMIT_REACHED(15) when daily request limit is hit", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id,
+      params: params
+    } do
+      # Set a low limit for fast testing
+      Application.put_env(:challenge, :daily_request_limit, 3)
+
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+
+      # Make requests up to the limit
+      for _ <- 1..3 do
+        result = Challenge.Gateway.bet(root_supervisor, params, headers)
+        assert result.status == "RS_OK"
+      end
+
+      # The next request should fail with RS_ERROR_LIMIT_REACHED
+      {result, _} = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_LIMIT_REACHED"
+      assert result.user == user_id
+      assert result.request_uuid == params.request_uuid
+    end
   end
 
   describe "Challenge.win/2" do
