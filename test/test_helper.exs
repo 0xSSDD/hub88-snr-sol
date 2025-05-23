@@ -86,6 +86,7 @@ defmodule TestUtils do
       game_code: "ont_blackjackclassic",
       token: random_uuid()
     }
+
     Map.merge(base, overrides)
   end
 
@@ -94,9 +95,7 @@ defmodule TestUtils do
   Uses the test private key to sign the JSON-encoded payload.
   """
   def valid_signature(payload \\ %{test: "data"}) do
-    dbg(payload)
     json = Jason.encode!(payload)
-    IO.inspect(json, label: "JSON to sign")
 
     json
     |> sign_payload()

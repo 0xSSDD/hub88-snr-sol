@@ -85,14 +85,14 @@ defmodule ChallengeTest do
 
       # Modify user balance manually
       Challenge.UserRegistry.update_balance("user1", -1_000_000)
-      {:ok, modified_user} = Challenge.UserRegistry.get_user("user1") |> dbg()
+      {:ok, modified_user} = Challenge.UserRegistry.get_user("user1")
       original_balance = modified_user.balance
 
       # Try to create the same user again
       Challenge.create_users(root_supervisor, ["user1"])
 
       # Verify balance wasn't reset
-      {:ok, final_user} = Challenge.UserRegistry.get_user("user1") |> dbg()
+      {:ok, final_user} = Challenge.UserRegistry.get_user("user1")
       assert final_user.balance == original_balance
     end
 
@@ -108,6 +108,7 @@ defmodule ChallengeTest do
   describe "Challenge.bet/2" do
     setup do
       root_supervisor = Challenge.start()
+      Challenge.UserRegistry.reset_all_tables()
       user_id = "user1"
 
       # Create user
@@ -122,6 +123,8 @@ defmodule ChallengeTest do
       # Since we dont have access to /games/list
       # we add ont_blackjackclassic to the registry manually
       Challenge.UserRegistry.add_game_code(params.game_code)
+
+      on_exit(fn -> Process.exit(root_supervisor, :normal) end)
 
       %{root_supervisor: root_supervisor, user_id: user_id, params: params}
     end
@@ -141,8 +144,7 @@ defmodule ChallengeTest do
       assert result.request_uuid == params.request_uuid
     end
 
-    # todo RS_OK: processes successful win
-    # todo RS_ERROR_UNKNOWN
+    # TODO RS_ERROR_UNKNOWN
 
     test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{
       root_supervisor: root_supervisor,
@@ -208,10 +210,19 @@ defmodule ChallengeTest do
       params = TestUtils.bet_params(user_id, %{amount: 1_000_000_000})
       Challenge.UserRegistry.add_token(user_id, params.token)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
+
+      {:ok, user_before} = Challenge.UserRegistry.get_user(user_id)
+      assert user_before.balance == 100_000
+
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY"
       # The user's actual balance
       assert result.balance == 100_000
+
+      {:ok, user_after} = Challenge.UserRegistry.get_user(user_id)
+      assert user_after.balance == user_before.balance
+      IO.inspect(user_before, label: "User before bet")
+      IO.inspect(user_after, label: "User after bet")
     end
 
     test "RS_ERROR_USER_DISABLED for disabled user", %{
@@ -272,26 +283,17 @@ defmodule ChallengeTest do
       # Change amount, but keep transaction_uuid the same
       params2 = %{params | amount: 10}
       headers2 = %{"X-Hub88-Signature" => TestUtils.valid_signature(params2)}
-      result = Challenge.Gateway.bet(root_supervisor, params2, headers2) |> dbg()
+      result = Challenge.Gateway.bet(root_supervisor, params2, headers2)
       assert result.status == "RS_ERROR_DUPLICATE_TRANSACTION"
     end
 
-    test "RS_ERROR_LIMIT_REACHED for rate limit", %{root_supervisor: root_supervisor} do
-      # Simulate rate limit in handler
-      "user1"
-      |> TestUtils.bet_params()
-      |> tap(fn _params ->
-        # You'd need to implement rate limiting logic in your handler for this to work
-        # result = Challenge.bet(server, params)
-        # assert result.status == "RS_ERROR_LIMIT_REACHED"
-        :ok
-      end)
-    end
+    # TODO:RS_ERROR_LIMIT_REACHED
   end
 
   describe "Challenge.win/2" do
     setup do
       root_supervisor = Challenge.start()
+      Challenge.UserRegistry.reset_all_tables()
       user_id = "user1"
       Challenge.create_users(root_supervisor, [user_id])
 

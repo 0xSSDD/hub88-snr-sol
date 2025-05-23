@@ -102,9 +102,6 @@ defmodule Challenge.TransactionHandler do
 
   # Token is only required for bets, not for wins/rollbacks
   defp validate_token(%{token: token, user: user_id}, :bet) do
-    dbg(token)
-    dbg(user_id)
-
     cond do
       is_nil(token) or token == "" ->
         {:error, "RS_ERROR_INVALID_TOKEN"}

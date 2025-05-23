@@ -79,9 +79,12 @@ defmodule Challenge.UserTransactionServer do
 
   defp duplicate_transaction_mismatch?(original, incoming) do
     # Compare all relevant fields
-    Enum.any?([:reference_transaction_uuid, :amount, :currency, :round, :user, :game_code], fn field ->
-      Map.get(original, field) != Map.get(incoming, field)
-    end)
+    Enum.any?(
+      [:reference_transaction_uuid, :amount, :currency, :round, :user, :game_code],
+      fn field ->
+        Map.get(original, field) != Map.get(incoming, field)
+      end
+    )
   end
 
   # todo once done make this more idiomatic

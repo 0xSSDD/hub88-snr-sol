@@ -214,4 +214,10 @@ defmodule Challenge.UserRegistry do
   def list_game_codes do
     :ets.tab2list(:game_codes) |> Enum.map(fn {code, _} -> code end)
   end
+
+  def reset_all_tables do
+    for table <- [:users, :transactions, :processed_transactions, :sub_partners, :tokens, :game_codes] do
+      if :ets.info(table) != :undefined, do: :ets.delete_all_objects(table)
+    end
+  end
 end
