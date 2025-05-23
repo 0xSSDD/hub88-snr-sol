@@ -75,10 +75,18 @@ defmodule TestUtils do
   @doc """
   Returns a valid win params map for a given user and reference transaction.
   """
-  def win_params(user, ref_tx_uuid, overrides \\ %{}) do
-    Map.merge(bet_params(user, overrides), %{
-      reference_transaction_uuid: ref_tx_uuid
-    })
+  def win_params(user_id, reference_transaction_uuid, overrides \\ %{}) do
+    base = %{
+      user: user_id,
+      transaction_uuid: random_uuid(),
+      reference_transaction_uuid: reference_transaction_uuid,
+      amount: 10,
+      request_uuid: random_uuid(),
+      currency: "USD",
+      game_code: "ont_blackjackclassic",
+      token: random_uuid()
+    }
+    Map.merge(base, overrides)
   end
 
   @doc """

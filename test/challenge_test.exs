@@ -289,24 +289,61 @@ defmodule ChallengeTest do
     end
   end
 
-  # describe "Challenge.win/2 status codes and edge cases" do
-  #   test "RS_OK for valid win", %{server: server} do
-  #     bet = bet_params("user2")
-  #     Challenge.bet(server, bet)
-  #     win = win_params("user2", bet.transaction_uuid)
-  #     result = Challenge.win(server, win)
-  #     assert result.status == "RS_OK"
-  #     assert result.request_uuid == win.request_uuid
-  #   end
+  describe "Challenge.win/2" do
+    setup do
+      root_supervisor = Challenge.start()
+      user_id = "user1"
+      Challenge.create_users(root_supervisor, [user_id])
 
-  #   test "RS_ERROR_TRANSACTION_DOES_NOT_EXIST for missing reference_transaction_uuid", %{
-  #     server: server
-  #   } do
-  #     win = win_params("user2", "nonexistent_tx")
-  #     result = Challenge.win(server, win)
-  #     assert result.status == "RS_ERROR_TRANSACTION_DOES_NOT_EXIST"
-  #   end
-  # end
+      # Use helpers to generate a token and game code
+      params = TestUtils.bet_params(user_id)
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      Challenge.UserRegistry.add_game_code(params.game_code)
+
+      %{root_supervisor: root_supervisor, user_id: user_id, bet_params: params}
+    end
+
+    test "RS_OK for valid win", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
+      # Place a bet
+      bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
+      bet_result = Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
+      assert bet_result.status == "RS_OK"
+
+      # Win referencing the bet
+      win_params =
+        TestUtils.win_params(user_id, bet_params.transaction_uuid, %{
+          token: bet_params.token,
+          game_code: bet_params.game_code,
+          currency: bet_params.currency
+        })
+
+      win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+      win_result = Challenge.Gateway.win(root_supervisor, win_params, win_headers)
+
+      assert win_result.status == "RS_OK"
+      assert win_result.user == user_id
+      assert win_result.request_uuid == win_params.request_uuid
+      assert win_result.balance == 100_000 - bet_params.amount + win_params.amount
+      assert win_result.currency == bet_params.currency
+    end
+
+    test "RS_ERROR_TRANSACTION_DOES_NOT_EXIST for missing reference_transaction_uuid", %{root_supervisor: root_supervisor, user_id: user_id, bet_params: bet_params} do
+      win_params =
+        TestUtils.win_params(user_id, "nonexistent_bet_uuid", %{
+          token: bet_params.token,
+          game_code: bet_params.game_code,
+          currency: bet_params.currency
+        })
+
+      win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+      win_result = Challenge.Gateway.win(root_supervisor, win_params, win_headers)
+
+      assert win_result.status == "RS_ERROR_TRANSACTION_DOES_NOT_EXIST"
+      assert win_result.user == user_id
+      assert win_result.request_uuid == win_params.request_uuid
+    end
+  end
+
 
   describe " Test Utils" do
     test "random_uuid/0" do
