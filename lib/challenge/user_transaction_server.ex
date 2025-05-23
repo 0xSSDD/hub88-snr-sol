@@ -57,7 +57,7 @@ defmodule Challenge.UserTransactionServer do
   defp handle_transaction(type, params, %{user_id: user_id}) do
     transaction_uuid = params.transaction_uuid
 
-    # FIXED: Use ETS as single source of truth for processed transactions
+    # Use ETS as single source of truth for processed transactions
     case UserRegistry.get_transaction(transaction_uuid) do
       {:ok, original_tx} ->
         # Transaction already processed
@@ -110,7 +110,7 @@ defmodule Challenge.UserTransactionServer do
     else
       amount = -params.amount
 
-      # FIXED: Atomic transaction processing with race condition handling
+      # Atomic transaction processing with race condition handling
       case process_transaction_atomically(user_id, params, amount) do
         {:ok, updated_user} ->
           %{
@@ -171,7 +171,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
-  # FIXED: Atomic transaction processing that handles race conditions
+  # Atomic transaction processing that handles race conditions
   defp process_transaction_atomically(user_id, params, amount) do
     # First, try to store the transaction atomically
     case UserRegistry.store_transaction(Map.put(params, :type, if(amount < 0, do: :bet, else: :win))) do
