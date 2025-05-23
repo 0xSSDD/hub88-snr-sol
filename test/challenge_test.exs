@@ -192,12 +192,13 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_WRONG_CURRENCY for currency mismatch", %{
       root_supervisor: root_supervisor,
-      user_id: _user_id
+      user_id: user_id
     } do
-      "user1"
-      |> TestUtils.bet_params(%{currency: "EUR"})
-      |> then(fn params -> Challenge.bet(root_supervisor, params) end)
-      |> then(fn result -> assert result.status == "RS_ERROR_WRONG_CURRENCY" end)
+      params = TestUtils.bet_params(user_id, %{currency: "EUR"})
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_WRONG_CURRENCY"
     end
 
     test "RS_ERROR_WRONG_TYPES for a random currency", %{
