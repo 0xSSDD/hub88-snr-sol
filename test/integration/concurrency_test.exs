@@ -2,8 +2,8 @@ defmodule ConcurrencyTest do
   use ExUnit.Case, async: false
 
   setup do
-    root_supervisor = Challenge.start()
-    Challenge.UserRegistry.reset_all_tables()
+    TestUtils.reset_test_environment()
+    root_supervisor = TestUtils.start_fresh_challenge()
     user_id = "user1"
     Challenge.create_users(root_supervisor, [user_id])
 
@@ -12,7 +12,10 @@ defmodule ConcurrencyTest do
     Challenge.UserRegistry.add_token(user_id, base_params.token)
     Challenge.UserRegistry.add_game_code(base_params.game_code)
 
-    on_exit(fn -> Process.exit(root_supervisor, :normal) end)
+    on_exit(fn ->
+      TestUtils.stop_challenge(root_supervisor)
+    end)
+
     %{root_supervisor: root_supervisor, user_id: user_id, base_params: base_params}
   end
 
@@ -47,8 +50,9 @@ defmodule ConcurrencyTest do
   end
 
   test "concurrent bets for different users are isolated" do
-    root_supervisor = Challenge.start()
-    Challenge.UserRegistry.reset_all_tables()
+    TestUtils.reset_test_environment()
+    root_supervisor = TestUtils.start_fresh_challenge()
+
     user_ids = ["user1", "user2"]
     Enum.each(user_ids, &Challenge.create_users(root_supervisor, [&1]))
 
@@ -63,7 +67,7 @@ defmodule ConcurrencyTest do
     results =
       params_list
       |> Task.async_stream(
-        fn {user_id, params} ->
+        fn {_user_id, params} ->
           headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
           Challenge.Gateway.bet(root_supervisor, params, headers)
         end,
@@ -80,9 +84,11 @@ defmodule ConcurrencyTest do
       {:ok, user} = Challenge.UserRegistry.get_user(user_id)
       assert user.balance == 100_000 - 10_000
     end)
+
+    # Clean up
+    TestUtils.stop_challenge(root_supervisor)
   end
 
-  # New test for actual duplicate transaction idempotency
   test "duplicate transactions with same UUID are idempotent", %{
     root_supervisor: root_supervisor,
     user_id: user_id,

@@ -112,8 +112,5 @@ Certainly! Here’s a **concise explanation** of how concurrency is handled in y
 
 
 # Add credo and then remove it before submitting it
-# TODO Ensure right http codes are sent https://docs.hub88.io/developer-docs/operator-api-reference/operator-api-overview/error-codes
-# Remove Jason usage
 # add a test for this 3.56 conversion bs
-
 # TODO Use pipe operators wherever possible

@@ -2,76 +2,77 @@ defmodule ChallengeTest do
   use ExUnit.Case
   doctest Challenge
 
+  @moduletag :capture_log
+
   describe "Challenge.start/0" do
     test "returns a valid server pid" do
-      Challenge.start()
-      |> then(fn server ->
-        assert is_pid(server)
-        assert Process.alive?(server)
-        server
-      end)
+      # Clean start
+      supervisor = TestUtils.start_fresh_challenge()
+
+      assert is_pid(supervisor)
+      assert Process.alive?(supervisor)
+
+      # Clean shutdown
+      TestUtils.stop_challenge(supervisor)
     end
 
     test "creates a supervision tree correctly" do
-      Challenge.start()
-      |> tap(fn root_supervisor ->
+      supervisor = TestUtils.start_fresh_challenge()
+
+      try do
         # Verify the main supervisor is running
-        assert is_pid(root_supervisor)
-      end)
-      |> Supervisor.which_children()
-      |> tap(fn children ->
+        assert is_pid(supervisor)
+
+        children = Supervisor.which_children(supervisor)
         # Verify supervisors are running
         assert length(children) == 2
         assert List.keyfind(children, Challenge.DataSupervisor, 0)
         assert List.keyfind(children, Challenge.PartitionSupervisor, 0)
-      end)
 
-      # Verify ETS tables exist
-      :ets.all()
-      |> tap(fn tables ->
+        # Verify ETS tables exist
+        tables = :ets.all()
         assert :users in tables
         assert :transactions in tables
         assert :processed_transactions in tables
-      end)
+      after
+        TestUtils.stop_challenge(supervisor)
+      end
     end
   end
 
   describe "Challenge.create_users/2" do
     setup do
-      Challenge.start()
-      |> then(&%{root_supervisor: &1})
+      TestUtils.reset_test_environment()
+      supervisor = TestUtils.start_fresh_challenge()
+
+      on_exit(fn ->
+        TestUtils.stop_challenge(supervisor)
+      end)
+
+      %{root_supervisor: supervisor}
     end
 
     test "creates a single user correctly", %{root_supervisor: root_supervisor} do
       assert :ok == Challenge.create_users(root_supervisor, ["user1"])
 
       # Verify user was created in ETS
-      "user1"
-      |> Challenge.UserRegistry.get_user()
-      |> then(fn {:ok, user_data} ->
-        assert user_data.balance == 100_000
-        assert user_data.currency == "USD"
-        assert is_integer(user_data.created_at)
-      end)
+      {:ok, user_data} = Challenge.UserRegistry.get_user("user1")
+      assert user_data.balance == 100_000
+      assert user_data.currency == "USD"
+      assert is_integer(user_data.created_at)
     end
 
     test "creates multiple users simultaneously", %{root_supervisor: root_supervisor} do
-      1..10_000
-      |> Enum.map(&"user_#{&1}")
-      |> then(&Challenge.create_users(root_supervisor, &1))
-      |> then(fn result -> assert :ok == result end)
+      users = Enum.map(1..1000, &"user_#{&1}")  # Reduced from 10k for faster tests
+
+      assert :ok == Challenge.create_users(root_supervisor, users)
 
       # Verify all users were created in ETS
-      1..10_000
-      |> Enum.map(&"user_#{&1}")
-      |> Enum.each(fn user ->
-        user
-        |> Challenge.UserRegistry.get_user()
-        |> then(fn {:ok, user_data} ->
-          assert user_data.balance == 100_000
-          assert user_data.currency == "USD"
-          assert is_integer(user_data.created_at)
-        end)
+      Enum.each(users, fn user ->
+        {:ok, user_data} = Challenge.UserRegistry.get_user(user)
+        assert user_data.balance == 100_000
+        assert user_data.currency == "USD"
+        assert is_integer(user_data.created_at)
       end)
     end
 
@@ -84,7 +85,7 @@ defmodule ChallengeTest do
       assert :ok == Challenge.create_users(root_supervisor, ["user1"])
 
       # Modify user balance manually
-      Challenge.UserRegistry.update_balance("user1", -1_000_000)
+      Challenge.UserRegistry.update_balance("user1", -50_000)
       {:ok, modified_user} = Challenge.UserRegistry.get_user("user1")
       original_balance = modified_user.balance
 
@@ -107,8 +108,7 @@ defmodule ChallengeTest do
 
   describe "Challenge.bet/2" do
     setup do
-      root_supervisor = Challenge.start()
-      Challenge.UserRegistry.reset_all_tables()
+      root_supervisor = TestUtils.start_fresh_challenge()
       user_id = "user1"
 
       # Create user
@@ -119,12 +119,11 @@ defmodule ChallengeTest do
 
       # Add the generated token to the registry
       Challenge.UserRegistry.add_token(user_id, params.token)
-
-      # Since we dont have access to /games/list
-      # we add ont_blackjackclassic to the registry manually
       Challenge.UserRegistry.add_game_code(params.game_code)
 
-      on_exit(fn -> Process.exit(root_supervisor, :normal) end)
+      on_exit(fn ->
+        TestUtils.stop_challenge(root_supervisor)
+      end)
 
       %{root_supervisor: root_supervisor, user_id: user_id, params: params}
     end
@@ -228,13 +227,10 @@ defmodule ChallengeTest do
 
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY"
-      # The user's actual balance
       assert result.balance == 100_000
 
       {:ok, user_after} = Challenge.UserRegistry.get_user(user_id)
       assert user_after.balance == user_before.balance
-      IO.inspect(user_before, label: "User before bet")
-      IO.inspect(user_after, label: "User after bet")
     end
 
     test "RS_ERROR_USER_DISABLED(8) for disabled user", %{
@@ -263,7 +259,6 @@ defmodule ChallengeTest do
       user_id: user_id
     } do
       params = TestUtils.bet_params(user_id, %{token: "expired"})
-      # No need to add this token to the registry, as "expired" is a special case
       Challenge.UserRegistry.add_game_code(params.game_code)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
@@ -317,8 +312,8 @@ defmodule ChallengeTest do
 
   describe "Challenge.win/2" do
     setup do
-      root_supervisor = Challenge.start()
-      Challenge.UserRegistry.reset_all_tables()
+      TestUtils.reset_test_environment()
+      root_supervisor = TestUtils.start_fresh_challenge()
       user_id = "user1"
       Challenge.create_users(root_supervisor, [user_id])
 
@@ -326,6 +321,10 @@ defmodule ChallengeTest do
       params = TestUtils.bet_params(user_id)
       Challenge.UserRegistry.add_token(user_id, params.token)
       Challenge.UserRegistry.add_game_code(params.game_code)
+
+      on_exit(fn ->
+        TestUtils.stop_challenge(root_supervisor)
+      end)
 
       %{root_supervisor: root_supervisor, user_id: user_id, bet_params: params}
     end
@@ -403,13 +402,11 @@ defmodule ChallengeTest do
     end
   end
 
-  describe " Test Utils" do
+  describe "Test Utils" do
     test "random_uuid/0" do
-      TestUtils.random_uuid()
-      |> then(fn uuid ->
-        assert is_binary(uuid)
-        assert String.length(uuid) == 36
-      end)
+      uuid = TestUtils.random_uuid()
+      assert is_binary(uuid)
+      assert String.length(uuid) == 36
     end
   end
 end

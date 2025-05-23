@@ -18,7 +18,7 @@ defmodule Challenge.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :public_key],
+      extra_applications: [:logger, :public_key, :crypto],
       mod: {Challenge.Application, []}
     ]
   end
@@ -26,6 +26,7 @@ defmodule Challenge.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      #  Keep only Credo for development (to be removed before submission)
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end

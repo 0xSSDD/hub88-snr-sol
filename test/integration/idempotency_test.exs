@@ -2,14 +2,18 @@ defmodule IdempotencyTest do
   use ExUnit.Case, async: false
 
   setup do
-    root_supervisor = Challenge.start()
-    Challenge.UserRegistry.reset_all_tables()
+    TestUtils.reset_test_environment()
+    root_supervisor = TestUtils.start_fresh_challenge()
     user_id = "user1"
     Challenge.create_users(root_supervisor, [user_id])
     params = TestUtils.bet_params(user_id)
     Challenge.UserRegistry.add_token(user_id, params.token)
     Challenge.UserRegistry.add_game_code(params.game_code)
-    on_exit(fn -> Process.exit(root_supervisor, :normal) end)
+
+    on_exit(fn ->
+      TestUtils.stop_challenge(root_supervisor)
+    end)
+
     %{root_supervisor: root_supervisor, user_id: user_id, params: params}
   end
 
@@ -32,7 +36,7 @@ defmodule IdempotencyTest do
   end
 
   test "duplicate bet with same transaction_uuid but different amount returns RS_ERROR_DUPLICATE_TRANSACTION(13)",
-       %{root_supervisor: root_supervisor, params: params, user_id: user_id} do
+       %{root_supervisor: root_supervisor, params: params, user_id: _user_id} do
     headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
     Challenge.Gateway.bet(root_supervisor, params, headers)
 
@@ -47,7 +51,7 @@ defmodule IdempotencyTest do
   test "duplicate bet with same transaction_uuid and different meta is idempotent", %{
     root_supervisor: root_supervisor,
     params: params,
-    user_id: user_id
+    user_id: _user_id
   } do
     headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
     Challenge.Gateway.bet(root_supervisor, params, headers)
