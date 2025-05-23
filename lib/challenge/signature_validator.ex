@@ -14,7 +14,7 @@ defmodule Challenge.SignatureValidator do
 
     with {:ok, decoded_signature} <- Base.decode64(signature, ignore: :whitespace),
          {:ok, public_key} <- fetch_and_parse_public_key(),
-         true <- safe_verify(body_binary, decoded_signature, public_key) do
+         true <- verify_signature(body_binary, decoded_signature, public_key) do
       :ok
     else
       {:error, _} -> {:error, "RS_ERROR_INVALID_SIGNATURE"}
@@ -34,12 +34,7 @@ defmodule Challenge.SignatureValidator do
       nil -> {:error, :no_key}
       pem when is_binary(pem) ->
         case :public_key.pem_decode(pem) do
-          [pem_entry] ->
-            try do
-              {:ok, :public_key.pem_entry_decode(pem_entry)}
-            rescue
-              _ -> {:error, :bad_pem_decode}
-            end
+          [pem_entry] -> decode_pem_entry(pem_entry)
           _ -> {:error, :bad_pem}
         end
       key when is_tuple(key) -> {:ok, key}
@@ -47,9 +42,24 @@ defmodule Challenge.SignatureValidator do
     end
   end
 
-  defp safe_verify(body, sig, key) do
+  defp decode_pem_entry(pem_entry) do
     try do
-      :public_key.verify(body, :sha256, sig, key)
+      case :public_key.pem_entry_decode(pem_entry) do
+        key when is_tuple(key) -> {:ok, key}
+        _ -> {:error, :bad_pem_decode}
+      end
+    rescue
+      _ -> {:error, :bad_pem_decode}
+    end
+  end
+
+  defp verify_signature(body, sig, key)
+       when is_binary(body) and is_binary(sig) and is_tuple(key) do
+    try do
+      case :public_key.verify(body, :sha256, sig, key) do
+        true -> true
+        false -> false
+      end
     rescue
       _ -> false
     end
