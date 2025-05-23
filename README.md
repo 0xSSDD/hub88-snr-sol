@@ -66,7 +66,6 @@ For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
 
-## Test Keys
 
 
 
