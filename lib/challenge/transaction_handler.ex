@@ -36,10 +36,6 @@ defmodule Challenge.TransactionHandler do
   end
 
   # Common Transaction processing logic
-  # TODO: Ensure: NB!
-  # Token validity most not be validated in case of wins and rollbacks,
-  # since they might come after the bet has been played.
-
   defp process_transaction(type, body, signature) do
     with :ok <- SignatureValidator.validate(body, signature),
          :ok <- validate_required_fields(body, type),

@@ -325,7 +325,7 @@ defmodule ChallengeTest do
       end
 
       # The next request should fail with RS_ERROR_LIMIT_REACHED
-      {result, _} = Challenge.Gateway.bet(root_supervisor, params, headers)
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_LIMIT_REACHED"
       assert result.user == user_id
       assert result.request_uuid == params.request_uuid

@@ -54,14 +54,14 @@ defmodule Challenge.UserTransactionServer do
   end
 
   # Main transaction handler with atomic idempotency
-  defp handle_transaction(type, params, %{user_id: user_id} = state) do
+  defp handle_transaction(type, params, %{user_id: user_id}) do
     transaction_uuid = params.transaction_uuid
 
     # Increment and get the new count
     current_count = Challenge.UserRegistry.increment_user_limit(user_id)
     limit = Challenge.UserRegistry.get_daily_request_limit()
     if current_count > limit do
-      {ErrorHandler.error_response(user_id, "RS_ERROR_LIMIT_REACHED", params), state}
+      ErrorHandler.error_response(user_id, "RS_ERROR_LIMIT_REACHED", params)
     else
       # Use ETS as single source of truth for processed transactions
       case UserRegistry.get_transaction(transaction_uuid) do
