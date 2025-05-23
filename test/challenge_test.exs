@@ -236,6 +236,16 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_USER_DISABLED"
     end
 
+    test "RS_ERROR_INVALID_SIGNATURE for invalid signature", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id,
+      params: params
+    } do
+      headers = %{"X-Hub88-Signature" => "invalid_signature"}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_INVALID_SIGNATURE"
+    end
+
     test "RS_ERROR_TOKEN_EXPIRED for expired token", %{root_supervisor: root_supervisor} do
       "user1"
       |> TestUtils.bet_params(%{token: "expired"})

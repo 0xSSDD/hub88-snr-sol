@@ -96,11 +96,6 @@ defmodule TestUtils do
   end
 
   @doc """
-  Returns an invalid signature (for testing error cases).
-  """
-  def invalid_signature, do: "bad"
-
-  @doc """
   Returns a map with both the payload and its valid signature.
   Useful for testing the complete request flow.
   """
