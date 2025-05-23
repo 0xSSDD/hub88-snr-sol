@@ -26,6 +26,7 @@ defmodule Challenge.Gateway do
     cond do
       is_map(headers) ->
         Map.get(headers, "x-hub88-signature") || Map.get(headers, "X-Hub88-Signature")
+
       is_list(headers) ->
         headers
         |> Enum.find_value(fn
@@ -33,7 +34,9 @@ defmodule Challenge.Gateway do
           {"X-Hub88-Signature", sig} -> sig
           _ -> nil
         end)
-      true -> nil
+
+      true ->
+        nil
     end
   end
 end

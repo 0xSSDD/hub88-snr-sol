@@ -87,6 +87,7 @@ defmodule TestUtils do
   def valid_signature(payload \\ %{test: "data"}) do
     json = Jason.encode!(payload)
     IO.inspect(json, label: "JSON to sign")
+
     json
     |> sign_payload()
     |> Base.encode64()

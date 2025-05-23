@@ -29,7 +29,12 @@ defmodule Challenge.SignatureValidator do
           public_key = get_public_key()
 
           # Verify using RSA-SHA256
-          case :public_key.verify(body_binary, :sha256, decoded_signature, parse_public_key(public_key)) do
+          case :public_key.verify(
+                 body_binary,
+                 :sha256,
+                 decoded_signature,
+                 parse_public_key(public_key)
+               ) do
             true -> :ok
             false -> {:error, "RS_ERROR_INVALID_SIGNATURE"}
           end

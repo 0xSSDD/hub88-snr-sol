@@ -124,6 +124,7 @@ defmodule ChallengeTest do
       assert result.currency == "USD"
       assert result.request_uuid == params.request_uuid
     end
+
     # todo RS_OK: processes successful win
 
     # todo come back to this
@@ -137,7 +138,10 @@ defmodule ChallengeTest do
       |> then(fn result -> assert result.status == "RS_ERROR_UNKNOWN" end)
     end
 
-    test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{root_supervisor: root_supervisor, user_id: user_id} do
+    test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id
+    } do
       Challenge.UserRegistry.create_sub_partner("sub_disabled")
       Challenge.UserRegistry.disable_sub_partner("sub_disabled")
       params = TestUtils.bet_params(user_id, %{sub_partner_id: "sub_disabled"})
@@ -146,7 +150,10 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_INVALID_PARTNER"
     end
 
-    test "RS_ERROR_INVALID_PARTNER for invalid sub_partner_id", %{root_supervisor: root_supervisor, user_id: user_id} do
+    test "RS_ERROR_INVALID_PARTNER for invalid sub_partner_id", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id
+    } do
       params = TestUtils.bet_params(user_id, %{sub_partner_id: "nonexistent"})
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
@@ -157,10 +164,10 @@ defmodule ChallengeTest do
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
-      "user1"
-      |> TestUtils.bet_params(%{token: nil})
-      |> then(fn params -> Challenge.bet(root_supervisor, params) end)
-      |> then(fn result -> assert result.status == "RS_ERROR_INVALID_TOKEN" end)
+      params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"})
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_INVALID_TOKEN"
     end
 
     test "RS_ERROR_INVALID_GAME for invalid game_code", %{

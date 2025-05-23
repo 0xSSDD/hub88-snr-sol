@@ -103,11 +103,19 @@ defmodule Challenge.TransactionHandler do
   defp validate_amount(_), do: {:error, "RS_ERROR_WRONG_TYPES"}
 
   # Token is only required for bets, not for wins/rollbacks
-  defp validate_token(%{token: token}, :bet) do
+  defp validate_token(%{token: token, user: user_id}, :bet) do
     cond do
-      is_nil(token) or token == "" -> {:error, "RS_ERROR_INVALID_TOKEN"}
-      token == "expired" -> {:error, "RS_ERROR_TOKEN_EXPIRED"}
-      true -> :ok
+      is_nil(token) or token == "" ->
+        {:error, "RS_ERROR_INVALID_TOKEN"}
+
+      token == "expired" ->
+        {:error, "RS_ERROR_TOKEN_EXPIRED"}
+
+      not Challenge.UserRegistry.valid_token?(user_id, token) ->
+        {:error, "RS_ERROR_INVALID_TOKEN"}
+
+      true ->
+        :ok
     end
   end
 
@@ -139,24 +147,29 @@ defmodule Challenge.TransactionHandler do
         validate_sub_partner_id(body)
 
       {:error, _} ->
-        :ok  # Let the rest of the pipeline handle unknown user
+        # Let the rest of the pipeline handle unknown user
+        :ok
     end
   end
 
   defp validate_operator_and_sub_partner(_), do: :ok
 
-  defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id}) when is_binary(sub_partner_id) do
+  defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id})
+       when is_binary(sub_partner_id) do
     cond do
       Challenge.UserRegistry.sub_partner_disabled?(sub_partner_id) ->
         {:error, "RS_ERROR_INVALID_PARTNER"}
+
       not Challenge.UserRegistry.valid_sub_partner?(sub_partner_id) ->
         {:error, "RS_ERROR_INVALID_PARTNER"}
+
       true ->
         :ok
     end
   end
 
-  defp validate_sub_partner_id(_), do: :ok  # If not present, treat as OK
+  # If not present, treat as OK
+  defp validate_sub_partner_id(_), do: :ok
 end
 
 # TODO are there any checks here that belong in user_tx_server

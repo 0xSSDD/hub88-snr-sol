@@ -8,9 +8,9 @@ defmodule Challenge.UserRegistry do
   @transactions_table :transactions
   @processed_transactions_table :processed_transactions
   @sub_partners_table :sub_partners
+  @tokens_table :tokens
 
   # Client API
-  # TODO understand the code and what does named_table do
   def start_link(_) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
@@ -51,6 +51,14 @@ defmodule Challenge.UserRegistry do
       {:write_concurrency, true}
     ])
 
+    :ets.new(@tokens_table, [
+      :set,
+      :public,
+      :named_table,
+      {:read_concurrency, true},
+      {:write_concurrency, true}
+    ])
+
     {:ok, []}
   end
 
@@ -68,6 +76,10 @@ defmodule Challenge.UserRegistry do
            disabled: false
          }}
       )
+
+      # Add a default token for the user for testing
+      default_token = "#{user_id}_token"
+      add_token(user_id, default_token)
     else
       # TODO: Not sure if this is the best way to handle this
       false
@@ -144,7 +156,8 @@ defmodule Challenge.UserRegistry do
     end
   end
 
-  def create_sub_partner(sub_partner_id) when is_binary(sub_partner_id) and sub_partner_id != "" do
+  def create_sub_partner(sub_partner_id)
+      when is_binary(sub_partner_id) and sub_partner_id != "" do
     :ets.insert_new(:sub_partners, {sub_partner_id, %{disabled: false}})
   end
 
@@ -153,6 +166,7 @@ defmodule Challenge.UserRegistry do
       [{^sub_partner_id, data}] ->
         :ets.insert(:sub_partners, {sub_partner_id, Map.put(data, :disabled, true)})
         :ok
+
       [] ->
         {:error, :not_found}
     end
@@ -170,5 +184,13 @@ defmodule Challenge.UserRegistry do
       [{^sub_partner_id, %{disabled: false}}] -> true
       _ -> false
     end
+  end
+
+  def add_token(user_id, token) when is_binary(user_id) and is_binary(token) do
+    :ets.insert(@tokens_table, {{user_id, token}, true})
+  end
+
+  def valid_token?(user_id, token) when is_binary(user_id) and is_binary(token) do
+    :ets.member(@tokens_table, {user_id, token})
   end
 end
