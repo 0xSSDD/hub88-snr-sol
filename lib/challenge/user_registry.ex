@@ -7,6 +7,7 @@ defmodule Challenge.UserRegistry do
   @users_table :users
   @transactions_table :transactions
   @processed_transactions_table :processed_transactions
+  @sub_partners_table :sub_partners
 
   # Client API
   # TODO understand the code and what does named_table do
@@ -35,6 +36,14 @@ defmodule Challenge.UserRegistry do
     ])
 
     :ets.new(@processed_transactions_table, [
+      :set,
+      :public,
+      :named_table,
+      {:read_concurrency, true},
+      {:write_concurrency, true}
+    ])
+
+    :ets.new(@sub_partners_table, [
       :set,
       :public,
       :named_table,
@@ -132,6 +141,34 @@ defmodule Challenge.UserRegistry do
 
       [] ->
         {:error, :user_not_found}
+    end
+  end
+
+  def create_sub_partner(sub_partner_id) when is_binary(sub_partner_id) and sub_partner_id != "" do
+    :ets.insert_new(:sub_partners, {sub_partner_id, %{disabled: false}})
+  end
+
+  def disable_sub_partner(sub_partner_id) do
+    case :ets.lookup(:sub_partners, sub_partner_id) do
+      [{^sub_partner_id, data}] ->
+        :ets.insert(:sub_partners, {sub_partner_id, Map.put(data, :disabled, true)})
+        :ok
+      [] ->
+        {:error, :not_found}
+    end
+  end
+
+  def sub_partner_disabled?(sub_partner_id) do
+    case :ets.lookup(:sub_partners, sub_partner_id) do
+      [{^sub_partner_id, %{disabled: true}}] -> true
+      _ -> false
+    end
+  end
+
+  def valid_sub_partner?(sub_partner_id) do
+    case :ets.lookup(:sub_partners, sub_partner_id) do
+      [{^sub_partner_id, %{disabled: false}}] -> true
+      _ -> false
     end
   end
 end

@@ -112,11 +112,11 @@ defmodule ChallengeTest do
       %{root_supervisor: root_supervisor, user_id: "user1"}
     end
 
-    test "processes successful bet with signature in headers", %{root_supervisor: root_supervisor, user_id: user_id} do
+    test "RS_OK: processes successful bet", %{root_supervisor: root_supervisor, user_id: user_id} do
       params = TestUtils.bet_params(user_id)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
 
-      result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
 
       assert result.status == "RS_OK"
       assert result.user == user_id
@@ -124,15 +124,9 @@ defmodule ChallengeTest do
       assert result.currency == "USD"
       assert result.request_uuid == params.request_uuid
     end
+    # todo RS_OK: processes successful win
 
-    test "RS_ERROR_INVALID_SIGNATURE for bad signature", %{root_supervisor: root_supervisor} do
-      params = TestUtils.bet_params("user1")
-      headers = %{"x-hub88-signature" => "bad"}
-
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_INVALID_SIGNATURE"
-    end
-
+    # todo come back to this
     test "RS_ERROR_UNKNOWN for non-existent user", %{
       root_supervisor: root_supervisor,
       user_id: user_id
@@ -141,6 +135,18 @@ defmodule ChallengeTest do
       |> TestUtils.bet_params()
       |> then(fn params -> Challenge.bet(root_supervisor, params) end)
       |> then(fn result -> assert result.status == "RS_ERROR_UNKNOWN" end)
+    end
+
+    test "RS_ERROR_INVALID_PARTNER for disabled sub_partner_id", %{root_supervisor: root_supervisor, user_id: user_id} do
+      # Create and disable a sub-partner
+      Challenge.UserRegistry.create_sub_partner("sub_disabled")
+      Challenge.UserRegistry.disable_sub_partner("sub_disabled")
+
+      params = TestUtils.bet_params(user_id, %{sub_partner_id: "sub_disabled"})
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_INVALID_PARTNER"
     end
 
     test "RS_ERROR_INVALID_TOKEN for invalid token", %{

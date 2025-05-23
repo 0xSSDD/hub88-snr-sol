@@ -41,9 +41,7 @@ defmodule Challenge.TransactionHandler do
   # TODO: Ensure: NB!
   # Token validity most not be validated in case of wins and rollbacks,
   # since they might come after the bet has been played.
-  # TODO: Include signature validation
-  # :ok <- SignatureValidator.validate_signature(body, signature),
-  # TODO what is with syntax?
+
   defp process_transaction(type, body, signature) do
     with :ok <- SignatureValidator.validate(body, signature),
          :ok <- validate_required_fields(body, type),
@@ -51,7 +49,8 @@ defmodule Challenge.TransactionHandler do
          :ok <- validate_amount(body),
          :ok <- validate_token(body, type),
          :ok <- validate_game_code(body),
-         :ok <- validate_currency_format(body) do
+         :ok <- validate_currency_format(body),
+         :ok <- validate_sub_partner_id(body) do
       user_id = body.user
       user_server = UserManager.get_user_server(user_id)
 
@@ -128,6 +127,19 @@ defmodule Challenge.TransactionHandler do
   end
 
   defp validate_currency_format(_), do: {:error, "RS_ERROR_WRONG_TYPES"}
+
+  defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id}) when is_binary(sub_partner_id) do
+    cond do
+      Challenge.UserRegistry.sub_partner_disabled?(sub_partner_id) ->
+        {:error, "RS_ERROR_INVALID_PARTNER"}
+      not Challenge.UserRegistry.valid_sub_partner?(sub_partner_id) ->
+        {:error, "RS_ERROR_INVALID_PARTNER"}
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_sub_partner_id(_), do: :ok  # If not present, treat as OK
 end
 
 # TODO are there any checks here that belong in user_tx_server
