@@ -77,9 +77,6 @@ defmodule Challenge.UserRegistry do
          }}
       )
 
-      # Add a default token for the user for testing
-      default_token = "#{user_id}_token"
-      add_token(user_id, default_token)
     else
       # TODO: Not sure if this is the best way to handle this
       false
