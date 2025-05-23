@@ -188,7 +188,8 @@ defmodule TestUtils do
     try do
       Challenge.UserRegistry.reset_all_tables()
     rescue
-      _ -> :ok  # Tables might not exist yet
+      # Tables might not exist yet
+      _ -> :ok
     end
   end
 

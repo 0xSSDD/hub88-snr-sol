@@ -63,7 +63,8 @@ defmodule ChallengeTest do
     end
 
     test "creates multiple users simultaneously", %{root_supervisor: root_supervisor} do
-      users = Enum.map(1..1000, &"user_#{&1}")  # Reduced from 10k for faster tests
+      # Reduced from 10k for faster tests
+      users = Enum.map(1..1000, &"user_#{&1}")
 
       assert :ok == Challenge.create_users(root_supervisor, users)
 

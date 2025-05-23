@@ -124,7 +124,10 @@ defmodule Challenge.UserTransactionServer do
         {:error, :not_enough_money} ->
           # Get current balance for error response
           {:ok, current_user} = UserRegistry.get_user(user_id)
-          ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params, balance: current_user.balance)
+
+          ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params,
+            balance: current_user.balance
+          )
 
         {:error, :duplicate_transaction} ->
           # Another process stored this transaction while we were processing
@@ -174,7 +177,9 @@ defmodule Challenge.UserTransactionServer do
   # Atomic transaction processing that handles race conditions
   defp process_transaction_atomically(user_id, params, amount) do
     # First, try to store the transaction atomically
-    case UserRegistry.store_transaction(Map.put(params, :type, if(amount < 0, do: :bet, else: :win))) do
+    case UserRegistry.store_transaction(
+           Map.put(params, :type, if(amount < 0, do: :bet, else: :win))
+         ) do
       {:ok, :new_transaction} ->
         # We successfully stored the transaction first, now update balance
         case UserRegistry.update_balance(user_id, amount) do
