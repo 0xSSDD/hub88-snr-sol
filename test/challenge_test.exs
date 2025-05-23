@@ -144,7 +144,20 @@ defmodule ChallengeTest do
       assert result.request_uuid == params.request_uuid
     end
 
-    # TODO 2.RS_ERROR_UNKNOWN
+    test "RS_ERROR_UNKNOWN(2) for non-existent user", %{root_supervisor: root_supervisor} do
+      # Do NOT create the user
+      user_id = "ghost_user"
+      params = TestUtils.bet_params(user_id)
+      # Register token and game code for completeness
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      Challenge.UserRegistry.add_game_code(params.game_code)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+
+      result = Challenge.Gateway.bet(root_supervisor, params, headers)
+      assert result.status == "RS_ERROR_UNKNOWN"
+      assert result.user == user_id
+      assert result.request_uuid == params.request_uuid
+    end
 
     test "RS_ERROR_INVALID_PARTNER(3) for disabled sub_partner_id", %{
       root_supervisor: root_supervisor,
