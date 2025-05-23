@@ -111,40 +111,40 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
-  defp execute_transaction(:bet, user_id, user, params) do
-    if user.currency != params.currency do
-      ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
-    else
-      amount = -params.amount
+  defp execute_transaction(:bet, user_id, user, params) when user.currency != params.currency do
+    ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
+  end
 
-      # Atomic transaction processing with race condition handling
-      case process_transaction_atomically(user_id, params, amount) do
-        {:ok, updated_user} ->
-          %{
-            user: user_id,
-            status: "RS_OK",
-            request_uuid: params.request_uuid,
-            currency: updated_user.currency,
-            balance: updated_user.balance
-          }
+  defp execute_transaction(:bet, user_id, user, params) when user.currency == params.currency do
+    amount = -params.amount
 
-        {:error, :not_enough_money} ->
-          # Get current balance for error response
-          {:ok, current_user} = UserRegistry.get_user(user_id)
+    # Atomic transaction processing with race condition handling
+    case process_transaction_atomically(user_id, params, amount) do
+      {:ok, updated_user} ->
+        %{
+          user: user_id,
+          status: "RS_OK",
+          request_uuid: params.request_uuid,
+          currency: updated_user.currency,
+          balance: updated_user.balance
+        }
 
-          ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params,
-            balance: current_user.balance
-          )
+      {:error, :not_enough_money} ->
+        # Get current balance for error response
+        {:ok, current_user} = UserRegistry.get_user(user_id)
 
-        {:error, :duplicate_transaction} ->
-          # Another process stored this transaction while we were processing
-          # Get the stored transaction and return consistent response
-          {:ok, stored_tx} = UserRegistry.get_transaction(params.transaction_uuid)
-          handle_duplicate_transaction(user_id, params, stored_tx)
+        ErrorHandler.error_response(user_id, "RS_ERROR_NOT_ENOUGH_MONEY", params,
+          balance: current_user.balance
+        )
 
-        {:error, _} ->
-          ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
-      end
+      {:error, :duplicate_transaction} ->
+        # Another process stored this transaction while we were processing
+        # Get the stored transaction and return consistent response
+        {:ok, stored_tx} = UserRegistry.get_transaction(params.transaction_uuid)
+        handle_duplicate_transaction(user_id, params, stored_tx)
+
+      {:error, _} ->
+        ErrorHandler.error_response(user_id, "RS_ERROR_UNKNOWN", params)
     end
   end
 
