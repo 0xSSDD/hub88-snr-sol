@@ -34,7 +34,7 @@ defmodule ConcurrencyTest do
           headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
           Challenge.Gateway.bet(root_supervisor, params, headers)
         end,
-        max_concurrency: 2,
+        max_concurrency: System.schedulers_online(),
         timeout: 2_000
       )
       |> Enum.map(fn {:ok, res} -> res end)
@@ -71,7 +71,7 @@ defmodule ConcurrencyTest do
           headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
           Challenge.Gateway.bet(root_supervisor, params, headers)
         end,
-        max_concurrency: 2,
+        max_concurrency: System.schedulers_online(),
         timeout: 2_000
       )
       |> Enum.map(fn {:ok, res} -> res end)
@@ -103,7 +103,7 @@ defmodule ConcurrencyTest do
         fn _ ->
           Challenge.Gateway.bet(root_supervisor, base_params, headers)
         end,
-        max_concurrency: 2,
+        max_concurrency: System.schedulers_online(),
         timeout: 2_000
       )
       |> Enum.map(fn {:ok, res} -> res end)
