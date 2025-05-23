@@ -134,7 +134,7 @@ defmodule Challenge.UserRegistry do
           new_balance = user_data.balance + amount
 
           # Check for insufficient funds on debit operations
-          if amount < 0 and new_balance < 0 do
+          if new_balance < 0 do
             {:error, :not_enough_money}
           else
             # Atomic update
