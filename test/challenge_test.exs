@@ -214,12 +214,14 @@ defmodule ChallengeTest do
 
     test "RS_ERROR_NOT_ENOUGH_MONEY for excessive bet", %{
       root_supervisor: root_supervisor,
-      user_id: _user_id
+      user_id: user_id
     } do
-      "user1"
-      |> TestUtils.bet_params(%{amount: 1_000_000_000})
-      |> then(fn params -> Challenge.bet(root_supervisor, params) end)
-      |> then(fn result -> assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY" end)
+      params = TestUtils.bet_params(user_id, %{amount: 1_000_000_000})
+      Challenge.UserRegistry.add_token(user_id, params.token)
+      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      result = Challenge.Gateway.bet(root_supervisor, params, headers) |> dbg()
+      assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY"
+      assert result.balance == 100_000  # The user's actual balance
     end
 
     test "RS_ERROR_USER_DISABLED for disabled user", %{
