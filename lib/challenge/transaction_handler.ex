@@ -152,7 +152,11 @@ defmodule Challenge.TransactionHandler do
   defp validate_operator_and_sub_partner(_), do: :ok
 
   defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id})
-       when is_binary(sub_partner_id) do
+       when not is_binary(sub_partner_id) or sub_partner_id == "" do
+    {:error, "RS_ERROR_WRONG_TYPES"}
+  end
+
+  defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id}) when is_binary(sub_partner_id) do
     cond do
       Challenge.UserRegistry.sub_partner_disabled?(sub_partner_id) ->
         {:error, "RS_ERROR_INVALID_PARTNER"}
@@ -165,7 +169,6 @@ defmodule Challenge.TransactionHandler do
     end
   end
 
-  # If not present, treat as OK
   defp validate_sub_partner_id(_), do: :ok
 end
 

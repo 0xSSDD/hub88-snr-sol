@@ -186,8 +186,11 @@ defmodule Challenge.UserRegistry do
   end
 
   # Sub-partner management
-  def create_sub_partner(sub_partner_id)
-      when is_binary(sub_partner_id) and sub_partner_id != "" do
+  def create_sub_partner(sub_partner_id) when not is_binary(sub_partner_id) or sub_partner_id == "" do
+    {:error, :wrong_types}
+  end
+
+  def create_sub_partner(sub_partner_id) do
     :ets.insert_new(@sub_partners_table, {sub_partner_id, %{disabled: false}})
   end
 
