@@ -34,20 +34,24 @@ defmodule Challenge.SignatureValidatorTest do
   end
 
   test "returns error for invalid key tuple" do
+    original_pubkey = Application.get_env(:challenge, :public_key)
     Application.put_env(:challenge, :public_key, {:not, :a, :key})
-    # The rescue in validate/2 should catch this
     assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    Application.put_env(:challenge, :public_key, original_pubkey)
   end
 
   test "returns error for valid base64 but invalid signature" do
-    # The signature won't match, so should return error
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    assert SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig")) == {:error, "RS_ERROR_INVALID_SIGNATURE"}
   end
 
   test "accepts both map and binary body" do
-    # Both should fail, but not crash
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate("{\"foo\":\"bar\"}", Base.encode64("sig"))
+    assert SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig")) == {:error, "RS_ERROR_INVALID_SIGNATURE"}
+    assert SignatureValidator.validate("{\"foo\":\"bar\"}", Base.encode64("sig")) == {:error, "RS_ERROR_INVALID_SIGNATURE"}
+  end
+
+  test "returns error for non-binary signature" do
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, 123)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, :atom)
   end
 
   defp demo_pub_pem do

@@ -9,55 +9,51 @@ defmodule Challenge.SignatureValidator do
   Validates the signature against the request body.
   """
   @spec validate(binary() | map(), binary() | nil) :: :ok | {:error, String.t()}
-  def validate(_body, nil), do: {:error, "RS_ERROR_INVALID_SIGNATURE"}
-  def validate(_body, "bad"), do: {:error, "RS_ERROR_INVALID_SIGNATURE"}
+  def validate(body, signature) when is_binary(signature) and (is_map(body) or is_binary(body)) do
+    body_binary = if is_map(body), do: encode_json(body), else: body
 
-  def validate(body, signature) when is_binary(signature) do
-    try do
-      # Convert body to JSON binary if it's a map
-      body_binary =
-        if is_map(body) do
-          encode_json(body)
-        else
-          body
-        end
-
-      # Decode base64 signature
-      case Base.decode64(signature, ignore: :whitespace) do
-        {:ok, decoded_signature} ->
-          # In a real app, you'd get this from config
-          public_key = get_public_key()
-
-          # Verify using RSA-SHA256
-          case :public_key.verify(
-                 body_binary,
-                 :sha256,
-                 decoded_signature,
-                 parse_public_key(public_key)
-               ) do
-            true -> :ok
-            false -> {:error, "RS_ERROR_INVALID_SIGNATURE"}
-          end
-
-        :error ->
-          {:error, "RS_ERROR_INVALID_SIGNATURE"}
-      end
-    rescue
+    with {:ok, decoded_signature} <- Base.decode64(signature, ignore: :whitespace),
+         {:ok, public_key} <- fetch_and_parse_public_key(),
+         true <- safe_verify(body_binary, decoded_signature, public_key) do
+      :ok
+    else
+      {:error, _} -> {:error, "RS_ERROR_INVALID_SIGNATURE"}
       _ -> {:error, "RS_ERROR_INVALID_SIGNATURE"}
     end
   end
+
+  def validate(_body, _signature), do: {:error, "RS_ERROR_INVALID_SIGNATURE"}
 
   defp get_public_key do
     # In a real app, this would come from config
     Application.get_env(:challenge, :public_key)
   end
 
-  defp parse_public_key(pem_string) when is_binary(pem_string) do
-    [pem_entry] = :public_key.pem_decode(pem_string)
-    :public_key.pem_entry_decode(pem_entry)
+  defp fetch_and_parse_public_key do
+    case get_public_key() do
+      nil -> {:error, :no_key}
+      pem when is_binary(pem) ->
+        case :public_key.pem_decode(pem) do
+          [pem_entry] ->
+            try do
+              {:ok, :public_key.pem_entry_decode(pem_entry)}
+            rescue
+              _ -> {:error, :bad_pem_decode}
+            end
+          _ -> {:error, :bad_pem}
+        end
+      key when is_tuple(key) -> {:ok, key}
+      _ -> {:error, :bad_key}
+    end
   end
 
-  defp parse_public_key(key) when is_tuple(key), do: key
+  defp safe_verify(body, sig, key) do
+    try do
+      :public_key.verify(body, :sha256, sig, key)
+    rescue
+      _ -> false
+    end
+  end
 
   # This is a basic implementation that handles the common cases needed for this challenge
   defp encode_json(value) when is_map(value) do
