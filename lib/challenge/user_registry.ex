@@ -216,7 +216,14 @@ defmodule Challenge.UserRegistry do
   end
 
   def reset_all_tables do
-    for table <- [:users, :transactions, :processed_transactions, :sub_partners, :tokens, :game_codes] do
+    for table <- [
+          :users,
+          :transactions,
+          :processed_transactions,
+          :sub_partners,
+          :tokens,
+          :game_codes
+        ] do
       if :ets.info(table) != :undefined, do: :ets.delete_all_objects(table)
     end
   end
