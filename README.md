@@ -93,6 +93,24 @@ This implementation is fully compliant with the assignment and Hub88 requirement
 
 **Note:** These keys are for testing only and are safe to commit to the repository.
 
+## Concurrency
+Certainly! Here’s a **concise explanation** of how concurrency is handled in your code:
+
+- **Per-user GenServer:**
+  Each user has a dedicated `UserTransactionServer` GenServer, serializing all their transactions. This prevents race conditions for a single user's balance.
+
+- **Atomic Transaction Idempotency:**
+  Transaction UUIDs are stored in an ETS table using `:ets.insert_new`, ensuring only one process can process a given transaction, even under concurrent requests.
+
+- **Atomic Balance Updates:**
+  All balance changes are performed via a GenServer call to `UserRegistry`, which atomically checks and updates the balance, preventing double-spending.
+
+- **Race Condition Safety:**
+  If two requests for the same transaction arrive at the same time, only one will be processed as new; the other will be recognized as a duplicate and handled accordingly.
+
+
+
+
 # Add credo and then remove it before submitting it
 # TODO Ensure right http codes are sent https://docs.hub88.io/developer-docs/operator-api-reference/operator-api-overview/error-codes
 # Remove Jason usage
