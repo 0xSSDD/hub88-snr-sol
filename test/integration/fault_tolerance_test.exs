@@ -16,6 +16,7 @@ defmodule Integration.FaultToleranceTest do
     headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
     Challenge.Gateway.bet(server, params, headers)
   end
+
   describe "UserTransactionServer Crash Recovery" do
     test "system recovers from UserTransactionServer crashes", %{root_supervisor: server} do
       user_id = "crash_test_user"
@@ -53,18 +54,19 @@ defmodule Integration.FaultToleranceTest do
       Challenge.create_users(server, [user_id])
 
       # Place several bets to establish transaction history
-      results = for i <- 1..3 do
-        params = TestUtils.bet_params(user_id, %{amount: 10_000})
-        Challenge.UserRegistry.add_token(user_id, params.token)
-        Challenge.UserRegistry.add_game_code(params.game_code)
-        bet(server, params)
-      end
+      results =
+        for i <- 1..3 do
+          params = TestUtils.bet_params(user_id, %{amount: 10_000})
+          Challenge.UserRegistry.add_token(user_id, params.token)
+          Challenge.UserRegistry.add_game_code(params.game_code)
+          bet(server, params)
+        end
 
-      Enum.each(results, &(assert &1.status == "RS_OK"))
+      Enum.each(results, &assert(&1.status == "RS_OK"))
 
       # Verify balance before crash
       {:ok, user_before} = Challenge.UserRegistry.get_user(user_id)
-      assert user_before.balance == 100_000 - (3 * 10_000)
+      assert user_before.balance == 100_000 - 3 * 10_000
 
       # Kill the process
       [{user_pid, _}] = Registry.lookup(Challenge.ProcessRegistry, user_id)
@@ -98,10 +100,11 @@ defmodule Integration.FaultToleranceTest do
       end)
 
       # Get all pids
-      pids = Enum.map(user_ids, fn user_id ->
-        [{pid, _}] = Registry.lookup(Challenge.ProcessRegistry, user_id)
-        {user_id, pid}
-      end)
+      pids =
+        Enum.map(user_ids, fn user_id ->
+          [{pid, _}] = Registry.lookup(Challenge.ProcessRegistry, user_id)
+          {user_id, pid}
+        end)
 
       # Kill all processes simultaneously
       Enum.each(pids, fn {_user_id, pid} ->
@@ -118,18 +121,19 @@ defmodule Integration.FaultToleranceTest do
       # System should still handle new requests efficiently
       start_time = System.monotonic_time(:millisecond)
 
-      results = Enum.map(user_ids, fn user_id ->
-        params = TestUtils.bet_params(user_id, %{amount: 2_000})
-        Challenge.UserRegistry.add_token(user_id, params.token)
-        Challenge.UserRegistry.add_game_code(params.game_code)
-        bet(server, params)
-      end)
+      results =
+        Enum.map(user_ids, fn user_id ->
+          params = TestUtils.bet_params(user_id, %{amount: 2_000})
+          Challenge.UserRegistry.add_token(user_id, params.token)
+          Challenge.UserRegistry.add_game_code(params.game_code)
+          bet(server, params)
+        end)
 
       end_time = System.monotonic_time(:millisecond)
       total_time = end_time - start_time
 
       # All requests should succeed
-      Enum.each(results, &(assert &1.status == "RS_OK"))
+      Enum.each(results, &assert(&1.status == "RS_OK"))
 
       # Should handle recovery efficiently (under 1 second for 5 users)
       assert total_time < 1000, "Recovery took #{total_time}ms, expected < 1000ms"
@@ -144,12 +148,15 @@ defmodule Integration.FaultToleranceTest do
   end
 
   describe "ETS Data Persistence" do
-    test "ETS tables survive process crashes and maintain data integrity", %{root_supervisor: server} do
+    test "ETS tables survive process crashes and maintain data integrity", %{
+      root_supervisor: server
+    } do
       user_id = "ets_test_user"
       Challenge.create_users(server, [user_id])
 
       # Create transaction history
       tx_count = 10
+
       for i <- 1..tx_count do
         params = TestUtils.bet_params(user_id, %{amount: 1_000})
         Challenge.UserRegistry.add_token(user_id, params.token)
@@ -165,7 +172,7 @@ defmodule Integration.FaultToleranceTest do
 
       # ETS data should still be accessible directly
       {:ok, user} = Challenge.UserRegistry.get_user(user_id)
-      assert user.balance == 100_000 - (tx_count * 1_000)
+      assert user.balance == 100_000 - tx_count * 1_000
 
       # Transaction history should be preserved
       stats = Challenge.UserRegistry.get_stats()
@@ -182,7 +189,8 @@ defmodule Integration.FaultToleranceTest do
       Challenge.create_users(server, user_ids)
 
       # Establish processes and create some failures
-      Enum.take_every(user_ids, 2) # Every other user
+      # Every other user
+      Enum.take_every(user_ids, 2)
       |> Enum.each(fn user_id ->
         params = TestUtils.bet_params(user_id)
         Challenge.UserRegistry.add_token(user_id, params.token)
@@ -199,24 +207,27 @@ defmodule Integration.FaultToleranceTest do
       # Now measure performance with concurrent requests to all users
       start_time = System.monotonic_time(:millisecond)
 
-      tasks = Enum.map(user_ids, fn user_id ->
-        Task.async(fn ->
-          params = TestUtils.bet_params(user_id, %{amount: 5_000})
-          Challenge.UserRegistry.add_token(user_id, params.token)
-          Challenge.UserRegistry.add_game_code(params.game_code)
-          bet(server, params)
+      tasks =
+        Enum.map(user_ids, fn user_id ->
+          Task.async(fn ->
+            params = TestUtils.bet_params(user_id, %{amount: 5_000})
+            Challenge.UserRegistry.add_token(user_id, params.token)
+            Challenge.UserRegistry.add_game_code(params.game_code)
+            bet(server, params)
+          end)
         end)
-      end)
 
       results = Task.await_many(tasks, 5_000)
       end_time = System.monotonic_time(:millisecond)
 
       # All should succeed despite previous failures
-      Enum.each(results, &(assert &1.status == "RS_OK"))
+      Enum.each(results, &assert(&1.status == "RS_OK"))
 
       # Performance should be reasonable (under 2 seconds for 20 concurrent requests)
       total_time = end_time - start_time
-      assert total_time < 2000, "Performance degraded: #{total_time}ms for #{user_count} concurrent requests"
+
+      assert total_time < 2000,
+             "Performance degraded: #{total_time}ms for #{user_count} concurrent requests"
 
       # Average response time should be reasonable
       avg_time = total_time / user_count

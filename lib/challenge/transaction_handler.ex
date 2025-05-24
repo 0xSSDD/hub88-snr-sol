@@ -156,7 +156,8 @@ defmodule Challenge.TransactionHandler do
     {:error, "RS_ERROR_WRONG_TYPES"}
   end
 
-  defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id}) when is_binary(sub_partner_id) do
+  defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id})
+       when is_binary(sub_partner_id) do
     cond do
       Challenge.UserRegistry.sub_partner_disabled?(sub_partner_id) ->
         {:error, "RS_ERROR_INVALID_PARTNER"}

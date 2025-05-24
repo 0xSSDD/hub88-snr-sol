@@ -292,7 +292,10 @@ defmodule ChallengeTest do
       assert result.status == "RS_ERROR_WRONG_TYPES"
     end
 
-    test "RS_ERROR_WRONG_TYPES(12) for non-binary sub_partner_id", %{root_supervisor: root_supervisor, user_id: user_id} do
+    test "RS_ERROR_WRONG_TYPES(12) for non-binary sub_partner_id", %{
+      root_supervisor: root_supervisor,
+      user_id: user_id
+    } do
       params = TestUtils.bet_params(user_id, %{sub_partner_id: 123})
       Challenge.UserRegistry.add_token(user_id, params.token)
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}

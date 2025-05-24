@@ -186,7 +186,8 @@ defmodule Challenge.UserRegistry do
   end
 
   # Sub-partner management
-  def create_sub_partner(sub_partner_id) when not is_binary(sub_partner_id) or sub_partner_id == "" do
+  def create_sub_partner(sub_partner_id)
+      when not is_binary(sub_partner_id) or sub_partner_id == "" do
     {:error, :wrong_types}
   end
 

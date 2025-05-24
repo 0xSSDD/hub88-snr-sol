@@ -32,6 +32,7 @@ defmodule Challenge.UserManagerTest do
   end
 
   test "get_user_server/1 returns nil for missing user" do
-    assert is_pid(Challenge.UserManager.get_user_server("ghost_user")) or is_nil(Challenge.UserManager.get_user_server("ghost_user"))
+    assert is_pid(Challenge.UserManager.get_user_server("ghost_user")) or
+             is_nil(Challenge.UserManager.get_user_server("ghost_user"))
   end
 end

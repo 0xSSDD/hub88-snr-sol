@@ -31,14 +31,20 @@ defmodule Challenge.SignatureValidator do
 
   defp fetch_and_parse_public_key do
     case get_public_key() do
-      nil -> {:error, :no_key}
+      nil ->
+        {:error, :no_key}
+
       pem when is_binary(pem) ->
         case :public_key.pem_decode(pem) do
           [pem_entry] -> decode_pem_entry(pem_entry)
           _ -> {:error, :bad_pem}
         end
-      key when is_tuple(key) -> {:ok, key}
-      _ -> {:error, :bad_key}
+
+      key when is_tuple(key) ->
+        {:ok, key}
+
+      _ ->
+        {:error, :bad_key}
     end
   end
 

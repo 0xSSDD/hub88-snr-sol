@@ -15,28 +15,37 @@ defmodule Challenge.SignatureValidatorTest do
   end
 
   test "returns error for nil signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, nil)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, nil)
   end
 
   test "returns error for 'bad' signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, "bad")
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, "bad")
   end
 
   test "returns error for invalid base64 signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, "!!!notbase64!!!")
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, "!!!notbase64!!!")
   end
 
   test "returns error for invalid PEM public key" do
     original_pubkey = Application.get_env(:challenge, :public_key)
     Application.put_env(:challenge, :public_key, "not a pem")
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+
     Application.put_env(:challenge, :public_key, original_pubkey)
   end
 
   test "returns error for invalid key tuple" do
     original_pubkey = Application.get_env(:challenge, :public_key)
     Application.put_env(:challenge, :public_key, {:not, :a, :key})
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+
     Application.put_env(:challenge, :public_key, original_pubkey)
   end
 
@@ -53,8 +62,11 @@ defmodule Challenge.SignatureValidatorTest do
   end
 
   test "returns error for non-binary signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, 123)
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = SignatureValidator.validate(%{foo: "bar"}, :atom)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, 123)
+
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+             SignatureValidator.validate(%{foo: "bar"}, :atom)
   end
 
   defp demo_pub_pem do

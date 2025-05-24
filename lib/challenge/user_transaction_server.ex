@@ -60,6 +60,7 @@ defmodule Challenge.UserTransactionServer do
     # Increment and get the new count
     current_count = Challenge.UserRegistry.increment_user_limit(user_id)
     limit = Challenge.UserRegistry.get_daily_request_limit()
+
     if current_count > limit do
       ErrorHandler.error_response(user_id, "RS_ERROR_LIMIT_REACHED", params)
     else
@@ -152,6 +153,7 @@ defmodule Challenge.UserTransactionServer do
     case validate_reference_transaction(params) do
       :ok ->
         execute_win_transaction(user_id, user, params)
+
       {:error, error_code} ->
         ErrorHandler.error_response(user_id, error_code, params)
     end
