@@ -1,4 +1,3 @@
-# test/unit/signature_validator_test.exs
 defmodule Challenge.SignatureValidatorTest do
   use ExUnit.Case, async: true
   alias Challenge.SignatureValidator
@@ -67,6 +66,48 @@ defmodule Challenge.SignatureValidatorTest do
 
     assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
              SignatureValidator.validate(%{foo: "bar"}, :atom)
+  end
+
+  test "returns :ok for valid signature and key" do
+    payload = %{"foo" => "bar"}
+    pubkey = TestUtils.test_public_key()
+    Application.put_env(:challenge, :public_key, pubkey)
+    signature = TestUtils.valid_signature(payload)
+    assert :ok = Challenge.SignatureValidator.validate(payload, signature)
+  end
+
+  test "returns error for nil public key" do
+    Application.put_env(:challenge, :public_key, nil)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+      Challenge.SignatureValidator.validate(%{foo: "bar"}, "somesig")
+  end
+
+  test "returns error for bad key type" do
+    Application.put_env(:challenge, :public_key, 12345)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+      Challenge.SignatureValidator.validate(%{foo: "bar"}, "somesig")
+  end
+
+  test "returns error for bad pem (pem_decode returns empty list)" do
+    # This is not a PEM at all, so pem_decode will return []
+    bad_pem = "completely invalid pem"
+    Application.put_env(:challenge, :public_key, bad_pem)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+      Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+  end
+
+  test "returns error for decode_pem_entry raising" do
+    # Use a PEM that will cause pem_entry_decode to raise (simulate with garbage)
+    raising_pem = "not a pem at all"
+    Application.put_env(:challenge, :public_key, raising_pem)
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+      Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+  end
+
+  test "returns error for bad key (not tuple, not binary, not nil)" do
+    Application.put_env(:challenge, :public_key, [1,2,3])
+    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
+      Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
   end
 
   defp demo_pub_pem do
