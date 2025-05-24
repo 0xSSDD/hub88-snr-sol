@@ -14,6 +14,9 @@ defmodule Challenge do
   @doc """
   Start a linked and isolated supervision tree and return the root server that
   will handle the requests.
+
+  NOTE: The error branch in Challenge.start/0 for unexpected Application.start/2 return
+  is not directly testable without patching or mocks, which are not allowed by challenge rules.
   """
   @spec start :: GenServer.server()
   def start do

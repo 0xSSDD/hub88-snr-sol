@@ -27,4 +27,16 @@ defmodule Challenge.GatewayTest do
     assert Gateway.extract_signature(123) == nil
     assert Gateway.extract_signature(nil) == nil
   end
+
+  describe "extract_signature/1" do
+    test "extracts signature from list with X-Hub88-Signature" do
+      headers = [{"X-Hub88-Signature", "abc"}]
+      assert Challenge.Gateway.extract_signature(headers) == "abc"
+    end
+
+    test "returns nil if not found in list" do
+      headers = [{"other-header", "val"}]
+      assert Challenge.Gateway.extract_signature(headers) == nil
+    end
+  end
 end

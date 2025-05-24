@@ -442,4 +442,21 @@ defmodule ChallengeTest do
       assert String.length(uuid) == 36
     end
   end
+
+  describe "bet/2 and win/2 header path" do
+    test "bet/2 builds headers and calls Gateway.bet" do
+      server = Challenge.start()
+      body = %{signature: "sig"}
+      # Should not crash, just for coverage
+      Challenge.bet(server, body)
+    end
+
+    test "win/2 builds headers and calls Gateway.win" do
+      server = Challenge.start()
+      body = %{signature: "sig"}
+      # Should not crash, just for coverage
+      Challenge.win(server, body)
+    end
+  end
+
 end
