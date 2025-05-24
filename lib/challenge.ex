@@ -45,7 +45,7 @@ defmodule Challenge do
   @spec bet(server :: GenServer.server(), body :: map) :: map
   def bet(server, body) do
     # For backward compatibility, handle both header and body signature
-    headers = %{"X-hub88-signature" => Map.get(body, :signature)}
+    headers = %{"X-Hub88-Signature" => Map.get(body, :signature)}
     Gateway.bet(server, body, headers)
   end
 
@@ -58,7 +58,7 @@ defmodule Challenge do
   @spec win(server :: GenServer.server(), body :: map) :: map
   def win(server, body) do
     # For backward compatibility, handle both header and body signature
-    headers = %{"X-hub88-signature" => Map.get(body, :signature)}
+    headers = %{"X-Hub88-Signature" => Map.get(body, :signature)}
     Gateway.win(server, body, headers)
   end
 end
