@@ -99,4 +99,50 @@ defmodule Challenge.UserRegistryTest do
     {:ok, user} = Challenge.UserRegistry.get_user("user1")
     assert user.disabled
   end
+
+  test "create_user returns error for invalid user_id" do
+    assert {:error, :invalid_user_id} = Challenge.UserRegistry.create_user(nil)
+    assert {:error, :invalid_user_id} = Challenge.UserRegistry.create_user("")
+  end
+
+  test "add_token returns error for invalid types" do
+    assert {:error, :wrong_types} = Challenge.UserRegistry.add_token(123, "token")
+    assert {:error, :wrong_types} = Challenge.UserRegistry.add_token("user", 123)
+  end
+
+  test "valid_token? returns false for invalid types" do
+    refute Challenge.UserRegistry.valid_token?(123, "token")
+    refute Challenge.UserRegistry.valid_token?("user", 123)
+  end
+
+  test "create_sub_partner returns error for invalid id" do
+    assert {:error, :wrong_types} = Challenge.UserRegistry.create_sub_partner(nil)
+    assert {:error, :wrong_types} = Challenge.UserRegistry.create_sub_partner("")
+  end
+
+  test "disable_user returns error for non-existent user" do
+    assert {:error, :user_not_found} = Challenge.UserRegistry.disable_user("no_such_user")
+  end
+
+  test "disable_sub_partner returns error for non-existent sub-partner" do
+    assert {:error, :not_found} = Challenge.UserRegistry.disable_sub_partner("no_such_partner")
+  end
+
+  test "remove_game_code and list_game_codes" do
+    Challenge.UserRegistry.add_game_code("game1")
+    Challenge.UserRegistry.add_game_code("game2")
+    assert Enum.sort(Challenge.UserRegistry.list_game_codes()) == ["game1", "game2"]
+    Challenge.UserRegistry.remove_game_code("game1")
+    assert Challenge.UserRegistry.list_game_codes() == ["game2"]
+  end
+
+  test "transaction_exists? returns false for missing, true for present" do
+    refute Challenge.UserRegistry.transaction_exists?("tx1")
+    Challenge.UserRegistry.store_transaction(%{transaction_uuid: "tx1"})
+    assert Challenge.UserRegistry.transaction_exists?("tx1")
+  end
+
+  test "health_check returns :ok" do
+    assert :ok = Challenge.UserRegistry.health_check()
+  end
 end
