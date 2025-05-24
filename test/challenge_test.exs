@@ -105,6 +105,15 @@ defmodule ChallengeTest do
       # Only valid string should be created
       {:ok, _} = Challenge.UserRegistry.get_user("valid_user")
     end
+
+    test "returns :ok when all users are invalid", %{root_supervisor: root_supervisor} do
+      assert :ok == Challenge.create_users(root_supervisor, [nil, "", 123, :atom])
+      # No users should be created
+      assert {:error, :user_not_found} = Challenge.UserRegistry.get_user("")
+      assert {:error, :user_not_found} = Challenge.UserRegistry.get_user(nil)
+      assert {:error, :user_not_found} = Challenge.UserRegistry.get_user("123")
+      assert {:error, :user_not_found} = Challenge.UserRegistry.get_user("atom")
+    end
   end
 
   describe "Challenge.bet/2" do
