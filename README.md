@@ -93,6 +93,14 @@ Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the p
 - **High Throughput by Design:**
   The solution leverages Elixir/OTP primitives like PartitionSupervisor and DynamicSupervisors to handle thousands of concurrent users and requests efficiently.
 
+- **Supervisor Tuning for Real-World Load:**
+  The supervision tree is explicitly configured (`max_restarts: 50_000`, `max_seconds: 60`, one partition per CPU core) to tolerate mass process churn and rapid restarts.
+
+- **No Data Loss on Crashes:**
+  All critical data (user balances, transaction history, idempotency keys) is stored in ETS tables managed by supervised GenServers, ensuring persistence and consistency even if user processes or supervisors crash and restart.
+
+- **Tested for Scalability:**
+  The test suite includes scenarios with 5,000+ users and thousands of concurrent requests, demonstrating the system's ability to scale and recover in a production-like environment.
 
 ### Signature Verification
 
