@@ -55,7 +55,7 @@ defmodule Integration.FaultToleranceTest do
 
       # Place several bets to establish transaction history
       results =
-        for i <- 1..3 do
+        for _i <- 1..3 do
           params = TestUtils.bet_params(user_id, %{amount: 10_000})
           Challenge.UserRegistry.add_token(user_id, params.token)
           Challenge.UserRegistry.add_game_code(params.game_code)
@@ -157,7 +157,7 @@ defmodule Integration.FaultToleranceTest do
       # Create transaction history
       tx_count = 10
 
-      for i <- 1..tx_count do
+      for _i <- 1..tx_count do
         params = TestUtils.bet_params(user_id, %{amount: 1_000})
         Challenge.UserRegistry.add_token(user_id, params.token)
         Challenge.UserRegistry.add_game_code(params.game_code)

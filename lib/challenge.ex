@@ -18,7 +18,7 @@ defmodule Challenge do
   """
   @spec start :: GenServer.server()
   def start do
-    case Challenge.Application.start(nil, nil) do
+    case Challenge.Application.start(:normal, nil) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
       # in case of named supervisor
