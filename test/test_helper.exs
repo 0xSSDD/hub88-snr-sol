@@ -4,7 +4,7 @@ Application.ensure_all_started(:crypto)
 Application.ensure_all_started(:public_key)
 Application.put_env(:challenge, :public_key, File.read!("priv/demo_pub.pem"))
 
-defmodule TestUtils do
+defmodule TestHelper do
   @moduledoc """
   Test utilities for the Challenge application.
   Includes helpers for generating test data and cryptographic signatures.

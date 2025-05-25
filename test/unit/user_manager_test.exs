@@ -2,10 +2,10 @@ defmodule Challenge.UserManagerTest do
   use ExUnit.Case, async: false
 
   setup do
-    TestUtils.reset_test_environment()
+    TestHelper.reset_test_environment()
     |> then(fn _ ->
-      supervisor = TestUtils.start_fresh_challenge()
-      on_exit(fn -> TestUtils.stop_challenge(supervisor) end)
+      supervisor = TestHelper.start_fresh_challenge()
+      on_exit(fn -> TestHelper.stop_challenge(supervisor) end)
       %{root_supervisor: supervisor}
     end)
   end

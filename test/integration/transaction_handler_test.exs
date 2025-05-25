@@ -20,10 +20,10 @@ defmodule Challenge.TransactionHandlerTest do
   use ExUnit.Case, async: false
 
   setup do
-    TestUtils.reset_test_environment()
+    TestHelper.reset_test_environment()
     |> then(fn _ ->
-      supervisor = TestUtils.start_fresh_challenge()
-      on_exit(fn -> TestUtils.stop_challenge(supervisor) end)
+      supervisor = TestHelper.start_fresh_challenge()
+      on_exit(fn -> TestHelper.stop_challenge(supervisor) end)
       %{supervisor: supervisor}
     end)
   end
@@ -33,17 +33,20 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.create_user(user)
     Challenge.UserRegistry.add_token(user, "token1")
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-    bet_params = TestUtils.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
-    bet_sig = TestUtils.valid_signature(bet_params)
+
+    bet_params =
+      TestHelper.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
+
+    bet_sig = TestHelper.valid_signature(bet_params)
     Challenge.TransactionHandler.bet(nil, bet_params, bet_sig)
 
     win_params =
-      TestUtils.win_params(user, bet_params.transaction_uuid, %{
+      TestHelper.win_params(user, bet_params.transaction_uuid, %{
         token: "token1",
         game_code: "ont_blackjackclassic"
       })
 
-    win_sig = TestUtils.valid_signature(win_params)
+    win_sig = TestHelper.valid_signature(win_params)
     result = Challenge.TransactionHandler.win(nil, win_params, win_sig)
     assert result.status == "RS_OK"
     assert result.user == user
@@ -57,8 +60,8 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.create_user(user)
     Challenge.UserRegistry.add_token(user, "token1")
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-    params = TestUtils.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
-    sig = TestUtils.valid_signature(params)
+    params = TestHelper.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
+    sig = TestHelper.valid_signature(params)
     result = Challenge.TransactionHandler.bet(nil, params, sig)
     assert result.status == "RS_OK"
     assert result.user == user
@@ -72,8 +75,8 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.create_user(user)
     Challenge.UserRegistry.add_token(user, "token1")
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-    params = TestUtils.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
-    sig = TestUtils.valid_signature(params)
+    params = TestHelper.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
+    sig = TestHelper.valid_signature(params)
     result1 = Challenge.TransactionHandler.bet(nil, params, sig)
     result2 = Challenge.TransactionHandler.bet(nil, params, sig)
     assert result1.status == "RS_OK"
@@ -89,13 +92,13 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.disable_sub_partner("sub1")
 
     params =
-      TestUtils.bet_params(user, %{
+      TestHelper.bet_params(user, %{
         token: "token1",
         game_code: "ont_blackjackclassic",
         sub_partner_id: "sub1"
       })
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_INVALID_PARTNER"} = &1)
@@ -108,13 +111,13 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     params =
-      TestUtils.bet_params(user, %{
+      TestHelper.bet_params(user, %{
         token: "token1",
         game_code: "ont_blackjackclassic",
         sub_partner_id: "notfound"
       })
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_INVALID_PARTNER"} = &1)
@@ -123,8 +126,8 @@ defmodule Challenge.TransactionHandlerTest do
   test "RS_ERROR_INVALID_TOKEN(4): returns error for invalid token" do
     user = "user1"
     Challenge.UserRegistry.create_user(user)
-    params = TestUtils.bet_params(user)
-    sig = TestUtils.valid_signature(params)
+    params = TestHelper.bet_params(user)
+    sig = TestHelper.valid_signature(params)
     # Don't add token to registry
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_INVALID_TOKEN"} = &1)
@@ -134,8 +137,8 @@ defmodule Challenge.TransactionHandlerTest do
     user = "user1"
     Challenge.UserRegistry.create_user(user)
     Challenge.UserRegistry.add_token(user, "token1")
-    params = Map.put(TestUtils.bet_params(user), :token, "token1")
-    sig = TestUtils.valid_signature(params)
+    params = Map.put(TestHelper.bet_params(user), :token, "token1")
+    sig = TestHelper.valid_signature(params)
     # Don't add game code to registry
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_INVALID_GAME"} = &1)
@@ -148,13 +151,13 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     params =
-      TestUtils.bet_params(user, %{
+      TestHelper.bet_params(user, %{
         token: "token1",
         game_code: "ont_blackjackclassic",
         currency: "EUR"
       })
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_WRONG_CURRENCY"} = &1)
@@ -167,13 +170,13 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     params =
-      TestUtils.bet_params(user, %{
+      TestHelper.bet_params(user, %{
         token: "token1",
         game_code: "ont_blackjackclassic",
         amount: 1_000_000
       })
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
     result = Challenge.TransactionHandler.bet(nil, params, sig)
     assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY"
     assert result.balance == 100_000
@@ -185,8 +188,8 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.disable_user(user)
     Challenge.UserRegistry.add_token(user, "token1")
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-    params = TestUtils.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
-    sig = TestUtils.valid_signature(params)
+    params = TestHelper.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_USER_DISABLED"} = &1)
@@ -197,7 +200,7 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.create_user(user)
     Challenge.UserRegistry.add_token(user, "token1")
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-    params = TestUtils.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
+    params = TestHelper.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic"})
     # Use an invalid signature
     Challenge.TransactionHandler.bet(nil, params, "invalidsig")
     |> then(&assert %{status: "RS_ERROR_INVALID_SIGNATURE"} = &1)
@@ -208,8 +211,8 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.create_user(user)
     Challenge.UserRegistry.add_token(user, "expired")
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-    params = TestUtils.bet_params(user, %{token: "expired", game_code: "ont_blackjackclassic"})
-    sig = TestUtils.valid_signature(params)
+    params = TestHelper.bet_params(user, %{token: "expired", game_code: "ont_blackjackclassic"})
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_TOKEN_EXPIRED"} = &1)
@@ -217,7 +220,7 @@ defmodule Challenge.TransactionHandlerTest do
 
   test "RS_ERROR_WRONG_SYNTAX(11): returns error for missing required fields" do
     %{}
-    |> TestUtils.valid_signature()
+    |> TestHelper.valid_signature()
     |> then(&Challenge.TransactionHandler.bet(nil, %{}, &1))
     |> then(&assert %{status: "RS_ERROR_WRONG_SYNTAX"} = &1)
   end
@@ -230,21 +233,21 @@ defmodule Challenge.TransactionHandlerTest do
     |> then(fn user_id ->
       Challenge.UserRegistry.add_token(user_id, "token1")
       Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
-      TestUtils.bet_params(user_id, %{token: "token1", game_code: "ont_blackjackclassic"})
+      TestHelper.bet_params(user_id, %{token: "token1", game_code: "ont_blackjackclassic"})
     end)
     |> then(fn params ->
-      sig = TestUtils.valid_signature(params)
+      sig = TestHelper.valid_signature(params)
       Challenge.TransactionHandler.bet(nil, params, sig)
     end)
     |> then(&assert &1.status == "RS_ERROR_WRONG_SYNTAX")
   end
 
   test "RS_ERROR_WRONG_TYPES(12): returns error for non-integer amount" do
-    TestUtils.bet_params("user1")
+    TestHelper.bet_params("user1")
     |> Map.put(:amount, "notanint")
-    |> tap(fn params -> TestUtils.valid_signature(params) end)
+    |> tap(fn params -> TestHelper.valid_signature(params) end)
     |> then(fn params ->
-      sig = TestUtils.valid_signature(params)
+      sig = TestHelper.valid_signature(params)
       Challenge.TransactionHandler.bet(nil, params, sig)
     end)
     |> then(&assert %{status: "RS_ERROR_WRONG_TYPES"} = &1)
@@ -257,13 +260,13 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     params =
-      TestUtils.bet_params(user, %{
+      TestHelper.bet_params(user, %{
         token: "token1",
         game_code: "ont_blackjackclassic",
         currency: "ZZZ"
       })
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_WRONG_TYPES"} = &1)
@@ -276,13 +279,13 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     params =
-      TestUtils.bet_params(user, %{
+      TestHelper.bet_params(user, %{
         token: "token1",
         game_code: "ont_blackjackclassic",
         sub_partner_id: 123
       })
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
 
     Challenge.TransactionHandler.bet(nil, params, sig)
     |> then(&assert %{status: "RS_ERROR_WRONG_TYPES"} = &1)
@@ -295,12 +298,12 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     params =
-      TestUtils.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic", amount: 5})
+      TestHelper.bet_params(user, %{token: "token1", game_code: "ont_blackjackclassic", amount: 5})
 
-    sig = TestUtils.valid_signature(params)
+    sig = TestHelper.valid_signature(params)
     Challenge.TransactionHandler.bet(nil, params, sig)
     params2 = %{params | amount: 10}
-    sig2 = TestUtils.valid_signature(params2)
+    sig2 = TestHelper.valid_signature(params2)
     result2 = Challenge.TransactionHandler.bet(nil, params2, sig2)
     assert result2.status == "RS_ERROR_DUPLICATE_TRANSACTION"
   end
@@ -312,12 +315,12 @@ defmodule Challenge.TransactionHandlerTest do
     Challenge.UserRegistry.add_game_code("ont_blackjackclassic")
 
     win_params =
-      TestUtils.win_params(user, "nonexistent_bet_uuid", %{
+      TestHelper.win_params(user, "nonexistent_bet_uuid", %{
         token: "token1",
         game_code: "ont_blackjackclassic"
       })
 
-    sig = TestUtils.valid_signature(win_params)
+    sig = TestHelper.valid_signature(win_params)
     result = Challenge.TransactionHandler.win(nil, win_params, sig)
     assert result.status == "RS_ERROR_TRANSACTION_DOES_NOT_EXIST"
   end

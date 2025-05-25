@@ -2,18 +2,18 @@ defmodule Integration.FaultToleranceTest do
   use ExUnit.Case, async: false
 
   setup do
-    TestUtils.reset_test_environment()
-    supervisor = TestUtils.start_fresh_challenge()
+    TestHelper.reset_test_environment()
+    supervisor = TestHelper.start_fresh_challenge()
 
     on_exit(fn ->
-      TestUtils.stop_challenge(supervisor)
+      TestHelper.stop_challenge(supervisor)
     end)
 
     %{root_supervisor: supervisor}
   end
 
   defp bet(server, params) do
-    headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+    headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(params)}
     Challenge.Gateway.bet(server, params, headers)
   end
 
@@ -21,7 +21,7 @@ defmodule Integration.FaultToleranceTest do
     test "system recovers from UserTransactionServer crashes", %{root_supervisor: server} do
       user_id = "crash_test_user"
       Challenge.create_users(server, [user_id])
-      params = TestUtils.bet_params(user_id)
+      params = TestHelper.bet_params(user_id)
       Challenge.UserRegistry.add_token(user_id, params.token)
       Challenge.UserRegistry.add_game_code(params.game_code)
 
@@ -39,7 +39,7 @@ defmodule Integration.FaultToleranceTest do
       refute Process.alive?(user_pid)
 
       # Place another bet (should create a new process)
-      params2 = TestUtils.bet_params(user_id)
+      params2 = TestHelper.bet_params(user_id)
       Challenge.UserRegistry.add_token(user_id, params2.token)
       Challenge.UserRegistry.add_game_code(params2.game_code)
       result2 = bet(server, params2)
@@ -56,7 +56,7 @@ defmodule Integration.FaultToleranceTest do
       # Place several bets to establish transaction history
       results =
         for _i <- 1..3 do
-          params = TestUtils.bet_params(user_id, %{amount: 10_000})
+          params = TestHelper.bet_params(user_id, %{amount: 10_000})
           Challenge.UserRegistry.add_token(user_id, params.token)
           Challenge.UserRegistry.add_game_code(params.game_code)
           bet(server, params)
@@ -78,7 +78,7 @@ defmodule Integration.FaultToleranceTest do
       assert user_after.balance == user_before.balance
 
       # New transactions should still work
-      params = TestUtils.bet_params(user_id, %{amount: 5_000})
+      params = TestHelper.bet_params(user_id, %{amount: 5_000})
       Challenge.UserRegistry.add_token(user_id, params.token)
       Challenge.UserRegistry.add_game_code(params.game_code)
       result = bet(server, params)
@@ -92,7 +92,7 @@ defmodule Integration.FaultToleranceTest do
 
       # Start processes for all users by placing bets
       Enum.each(user_ids, fn user_id ->
-        params = TestUtils.bet_params(user_id, %{amount: 1_000})
+        params = TestHelper.bet_params(user_id, %{amount: 1_000})
         Challenge.UserRegistry.add_token(user_id, params.token)
         Challenge.UserRegistry.add_game_code(params.game_code)
         result = bet(server, params)
@@ -123,7 +123,7 @@ defmodule Integration.FaultToleranceTest do
 
       results =
         Enum.map(user_ids, fn user_id ->
-          params = TestUtils.bet_params(user_id, %{amount: 2_000})
+          params = TestHelper.bet_params(user_id, %{amount: 2_000})
           Challenge.UserRegistry.add_token(user_id, params.token)
           Challenge.UserRegistry.add_game_code(params.game_code)
           bet(server, params)
@@ -158,7 +158,7 @@ defmodule Integration.FaultToleranceTest do
       tx_count = 10
 
       for _i <- 1..tx_count do
-        params = TestUtils.bet_params(user_id, %{amount: 1_000})
+        params = TestHelper.bet_params(user_id, %{amount: 1_000})
         Challenge.UserRegistry.add_token(user_id, params.token)
         Challenge.UserRegistry.add_game_code(params.game_code)
         result = bet(server, params)
@@ -192,7 +192,7 @@ defmodule Integration.FaultToleranceTest do
       # Every other user
       Enum.take_every(user_ids, 2)
       |> Enum.each(fn user_id ->
-        params = TestUtils.bet_params(user_id)
+        params = TestHelper.bet_params(user_id)
         Challenge.UserRegistry.add_token(user_id, params.token)
         Challenge.UserRegistry.add_game_code(params.game_code)
         bet(server, params)
@@ -210,7 +210,7 @@ defmodule Integration.FaultToleranceTest do
       tasks =
         Enum.map(user_ids, fn user_id ->
           Task.async(fn ->
-            params = TestUtils.bet_params(user_id, %{amount: 5_000})
+            params = TestHelper.bet_params(user_id, %{amount: 5_000})
             Challenge.UserRegistry.add_token(user_id, params.token)
             Challenge.UserRegistry.add_game_code(params.game_code)
             bet(server, params)

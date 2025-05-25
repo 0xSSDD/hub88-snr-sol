@@ -25,9 +25,6 @@ defmodule Challenge.MixProject do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    [
-      #  Keep only Credo for development (to be removed before submission)
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
-    ]
+    []
   end
 end

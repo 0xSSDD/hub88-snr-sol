@@ -28,16 +28,16 @@ defmodule ChallengeTest do
 
   describe "Challenge.start/0" do
     test "returns a valid server pid" do
-      TestUtils.start_fresh_challenge()
+      TestHelper.start_fresh_challenge()
       |> tap(fn supervisor ->
         assert is_pid(supervisor)
         assert Process.alive?(supervisor)
       end)
-      |> TestUtils.stop_challenge()
+      |> TestHelper.stop_challenge()
     end
 
     test "creates a supervision tree correctly" do
-      TestUtils.start_fresh_challenge()
+      TestHelper.start_fresh_challenge()
       |> tap(fn supervisor ->
         assert is_pid(supervisor)
 
@@ -51,16 +51,16 @@ defmodule ChallengeTest do
         assert :transactions in tables
         assert :processed_transactions in tables
       end)
-      |> TestUtils.stop_challenge()
+      |> TestHelper.stop_challenge()
     end
   end
 
   describe "Challenge.create_users/2" do
     setup do
-      TestUtils.reset_test_environment()
-      supervisor = TestUtils.start_fresh_challenge()
+      TestHelper.reset_test_environment()
+      supervisor = TestHelper.start_fresh_challenge()
 
-      on_exit(fn -> TestUtils.stop_challenge(supervisor) end)
+      on_exit(fn -> TestHelper.stop_challenge(supervisor) end)
       %{root_supervisor: supervisor}
     end
 
@@ -131,17 +131,17 @@ defmodule ChallengeTest do
 
   describe "Challenge.bet/2" do
     setup do
-      root_supervisor = TestUtils.start_fresh_challenge()
+      root_supervisor = TestHelper.start_fresh_challenge()
       user_id = "user1"
 
       Challenge.create_users(root_supervisor, [user_id])
 
-      params = TestUtils.bet_params(user_id)
+      params = TestHelper.bet_params(user_id)
 
       Challenge.UserRegistry.add_token(user_id, params.token)
       Challenge.UserRegistry.add_game_code(params.game_code)
 
-      on_exit(fn -> TestUtils.stop_challenge(root_supervisor) end)
+      on_exit(fn -> TestHelper.stop_challenge(root_supervisor) end)
 
       %{root_supervisor: root_supervisor, user_id: user_id, params: params}
     end
@@ -152,7 +152,7 @@ defmodule ChallengeTest do
       params: params
     } do
       Challenge.Gateway.bet(root_supervisor, params, %{
-        "X-Hub88-Signature" => TestUtils.valid_signature(params)
+        "X-Hub88-Signature" => TestHelper.valid_signature(params)
       })
       |> then(fn result ->
         assert result.status == "RS_OK"
@@ -167,10 +167,10 @@ defmodule ChallengeTest do
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
-      params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"})
+      params = TestHelper.bet_params(user_id, %{token: "not_a_real_token"})
 
       Challenge.Gateway.bet(root_supervisor, params, %{
-        "X-Hub88-Signature" => TestUtils.valid_signature(params)
+        "X-Hub88-Signature" => TestHelper.valid_signature(params)
       })
       |> then(&assert &1.status == "RS_ERROR_INVALID_TOKEN")
     end
@@ -179,9 +179,9 @@ defmodule ChallengeTest do
       root_supervisor: root_supervisor,
       user_id: user_id
     } do
-      params = TestUtils.bet_params(user_id, %{amount: 1_000_000_000})
+      params = TestHelper.bet_params(user_id, %{amount: 1_000_000_000})
       Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+      headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(params)}
 
       {:ok, user_before} = Challenge.UserRegistry.get_user(user_id)
       assert user_before.balance == 100_000
@@ -199,16 +199,16 @@ defmodule ChallengeTest do
 
   describe "Challenge.win/2" do
     setup do
-      TestUtils.reset_test_environment()
-      root_supervisor = TestUtils.start_fresh_challenge()
+      TestHelper.reset_test_environment()
+      root_supervisor = TestHelper.start_fresh_challenge()
       user_id = "user1"
       Challenge.create_users(root_supervisor, [user_id])
 
-      params = TestUtils.bet_params(user_id)
+      params = TestHelper.bet_params(user_id)
       Challenge.UserRegistry.add_token(user_id, params.token)
       Challenge.UserRegistry.add_game_code(params.game_code)
 
-      on_exit(fn -> TestUtils.stop_challenge(root_supervisor) end)
+      on_exit(fn -> TestHelper.stop_challenge(root_supervisor) end)
 
       %{root_supervisor: root_supervisor, user_id: user_id, bet_params: params}
     end
@@ -218,19 +218,19 @@ defmodule ChallengeTest do
       user_id: user_id,
       bet_params: bet_params
     } do
-      bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
+      bet_headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(bet_params)}
 
       Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
       |> then(&assert &1.status == "RS_OK")
 
       win_params =
-        TestUtils.win_params(user_id, bet_params.transaction_uuid, %{
+        TestHelper.win_params(user_id, bet_params.transaction_uuid, %{
           token: bet_params.token,
           game_code: bet_params.game_code,
           currency: bet_params.currency
         })
 
-      win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+      win_headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(win_params)}
 
       Challenge.Gateway.win(root_supervisor, win_params, win_headers)
       |> then(fn win_result ->
@@ -248,13 +248,13 @@ defmodule ChallengeTest do
       bet_params: bet_params
     } do
       win_params =
-        TestUtils.win_params(user_id, "nonexistent_bet_uuid", %{
+        TestHelper.win_params(user_id, "nonexistent_bet_uuid", %{
           token: bet_params.token,
           game_code: bet_params.game_code,
           currency: bet_params.currency
         })
 
-      win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+      win_headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(win_params)}
 
       Challenge.Gateway.win(root_supervisor, win_params, win_headers)
       |> then(fn win_result ->
@@ -269,19 +269,19 @@ defmodule ChallengeTest do
       user_id: user_id,
       bet_params: bet_params
     } do
-      bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
+      bet_headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(bet_params)}
 
       Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
       |> then(&assert &1.status == "RS_OK")
 
       win_params =
-        TestUtils.win_params(user_id, bet_params.transaction_uuid, %{
+        TestHelper.win_params(user_id, bet_params.transaction_uuid, %{
           token: "expired",
           game_code: bet_params.game_code,
           currency: bet_params.currency
         })
 
-      win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+      win_headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(win_params)}
 
       Challenge.Gateway.win(root_supervisor, win_params, win_headers)
       |> then(&assert &1.status == "RS_OK")
@@ -290,7 +290,7 @@ defmodule ChallengeTest do
 
   describe "Test Utils" do
     test "random_uuid/0" do
-      TestUtils.random_uuid()
+      TestHelper.random_uuid()
       |> then(fn uuid ->
         assert is_binary(uuid)
         assert String.length(uuid) == 36

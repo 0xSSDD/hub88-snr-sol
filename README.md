@@ -68,7 +68,29 @@ For further clarifications, be in touch with the recruitment contact.
 Here is the architecture diagram
 ![Architecture Diagram](architecture.excalidraw.svg)
 
-# TODO: Flesh this readme out
+### API Contract Compliance
+
+- **Strict Adherence to Hub88 API Spec:**
+  All endpoints are implemented to match the [Hub88 Operator API Reference](https://docs.hub88.io/developer-docs/operator-api-reference/wallet-api) exactly, including required fields, error codes, and response formats.
+
+- **Idempotency & Retry Safety:**
+  Each `transaction_uuid` is processed at most once, ensuring safe handling of retries and duplicate requests as per Hub88's requirements.
+
+### Error Handling & Response Codes
+
+- **Comprehensive Error Handling:**
+  All documented error codes and statuses are returned as specified, covering invalid tokens, insufficient funds, duplicate transactions, and more.
+
+### Security & Signature Verification
+
+- **Signature Verification:**
+  Every request is validated using RSA-SHA256 signatures, ensuring authenticity and integrity.
+
+### Performance & Scalability
+
+- **High Throughput by Design:**
+  The solution leverages Elixir/OTP primitives like PartitionSupervisor and DynamicSupervisors to handle thousands of concurrent users and requests efficiently.
+
 
 ### Signature Verification
 
@@ -90,7 +112,6 @@ openssl rsa -pubout -in priv/demo_priv.pem -out priv/demo_pub.pem
 
 This implementation is fully compliant with the assignment and Hub88 requirements, using only Elixir/Erlang standard libraries.
 
-
 **Note:** These keys are for testing only and are safe to commit to the repository.
 
 ### Concurrency Concerns
@@ -106,9 +127,3 @@ This implementation is fully compliant with the assignment and Hub88 requirement
 
 - **Race Condition Safety:**
   If two requests for the same transaction arrive at the same time, only one will be processed as new; the other will be recognized as a duplicate and handled accordingly.
-
-
-
-## TODOs
-* Add credo and then remove it before submitting it - Function guard, patter match to denest
-* change the testhelper file mismatch

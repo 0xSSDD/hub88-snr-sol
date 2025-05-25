@@ -229,5 +229,3 @@ defmodule Challenge.TransactionHandler do
 
   defp validate_sub_partner_id(_), do: :ok
 end
-
-# TODO are there any checks here that belong in user_tx_server

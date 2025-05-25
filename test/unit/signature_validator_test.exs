@@ -84,9 +84,9 @@ defmodule Challenge.SignatureValidatorTest do
 
   test "returns :ok for valid signature and key" do
     payload = %{"foo" => "bar"}
-    pubkey = TestUtils.test_public_key()
+    pubkey = TestHelper.test_public_key()
     Application.put_env(:challenge, :public_key, pubkey)
-    signature = TestUtils.valid_signature(payload)
+    signature = TestHelper.valid_signature(payload)
 
     payload
     |> SignatureValidator.validate(signature)

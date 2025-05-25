@@ -1,6 +1,6 @@
-defmodule TestUtilsTest do
+defmodule TestHelperTest do
   use ExUnit.Case
-  alias TestUtils
+  alias TestHelper
 
   test "test keys exist and are valid" do
     # Verify keys exist
@@ -9,7 +9,7 @@ defmodule TestUtilsTest do
 
     # Verify keys can be used for signing
     test_data = "test data"
-    signature = TestUtils.valid_signature(%{data: test_data})
+    signature = TestHelper.valid_signature(%{data: test_data})
     assert is_binary(signature)
     assert byte_size(signature) > 0
   end

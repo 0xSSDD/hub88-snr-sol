@@ -2,17 +2,17 @@ defmodule ConcurrencyTest do
   use ExUnit.Case, async: false
 
   setup do
-    TestUtils.reset_test_environment()
+    TestHelper.reset_test_environment()
     |> then(fn _ ->
-      root_supervisor = TestUtils.start_fresh_challenge()
+      root_supervisor = TestHelper.start_fresh_challenge()
       user_id = "user1"
       Challenge.create_users(root_supervisor, [user_id])
 
-      base_params = TestUtils.bet_params(user_id, %{amount: 60_000})
+      base_params = TestHelper.bet_params(user_id, %{amount: 60_000})
       Challenge.UserRegistry.add_token(user_id, base_params.token)
       Challenge.UserRegistry.add_game_code(base_params.game_code)
 
-      on_exit(fn -> TestUtils.stop_challenge(root_supervisor) end)
+      on_exit(fn -> TestHelper.stop_challenge(root_supervisor) end)
 
       %{root_supervisor: root_supervisor, user_id: user_id, base_params: base_params}
     end)
@@ -32,7 +32,7 @@ defmodule ConcurrencyTest do
           Challenge.UserRegistry.add_game_code(params.game_code)
         end)
         |> then(fn params ->
-          headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+          headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(params)}
           Challenge.Gateway.bet(root_supervisor, params, headers)
         end)
       end,
@@ -49,8 +49,8 @@ defmodule ConcurrencyTest do
   end
 
   test "concurrent bets for different users are isolated" do
-    TestUtils.reset_test_environment()
-    |> then(fn _ -> TestUtils.start_fresh_challenge() end)
+    TestHelper.reset_test_environment()
+    |> then(fn _ -> TestHelper.start_fresh_challenge() end)
     |> tap(fn root_supervisor ->
       ["user1", "user2"]
       |> Enum.each(&Challenge.create_users(root_supervisor, [&1]))
@@ -58,7 +58,7 @@ defmodule ConcurrencyTest do
     |> then(fn root_supervisor ->
       ["user1", "user2"]
       |> Enum.map(fn user_id ->
-        TestUtils.bet_params(user_id, %{amount: 10_000})
+        TestHelper.bet_params(user_id, %{amount: 10_000})
         |> tap(fn params ->
           Challenge.UserRegistry.add_token(user_id, params.token)
           Challenge.UserRegistry.add_game_code(params.game_code)
@@ -69,7 +69,7 @@ defmodule ConcurrencyTest do
         params_list
         |> Task.async_stream(
           fn {_user_id, params} ->
-            headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
+            headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(params)}
             Challenge.Gateway.bet(root_supervisor, params, headers)
           end,
           max_concurrency: System.schedulers_online(),
@@ -88,7 +88,7 @@ defmodule ConcurrencyTest do
         end)
       end)
 
-      TestUtils.stop_challenge(root_supervisor)
+      TestHelper.stop_challenge(root_supervisor)
     end)
   end
 
@@ -97,7 +97,7 @@ defmodule ConcurrencyTest do
     user_id: user_id,
     base_params: base_params
   } do
-    headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(base_params)}
+    headers = %{"X-Hub88-Signature" => TestHelper.valid_signature(base_params)}
 
     1..2
     |> Task.async_stream(
