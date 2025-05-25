@@ -3,38 +3,44 @@ defmodule Challenge.UserRegistryTest do
 
   setup do
     TestUtils.reset_test_environment()
-    supervisor = TestUtils.start_fresh_challenge()
-
-    on_exit(fn ->
-      TestUtils.stop_challenge(supervisor)
+    |> then(fn _ ->
+      supervisor = TestUtils.start_fresh_challenge()
+      on_exit(fn -> TestUtils.stop_challenge(supervisor) end)
+      %{root_supervisor: supervisor}
     end)
-
-    %{root_supervisor: supervisor}
   end
 
   test "create_user/1 creates and fetches a user" do
-    assert {:ok, user} = Challenge.UserRegistry.create_user("user1")
-    assert user.balance == 100_000
-    assert {:ok, user2} = Challenge.UserRegistry.get_user("user1")
-    assert user2 == user
+    "user1"
+    |> Challenge.UserRegistry.create_user()
+    |> then(fn {:ok, user} ->
+      assert user.balance == 100_000
+      assert {:ok, user2} = Challenge.UserRegistry.get_user("user1")
+      assert user2 == user
+    end)
   end
 
   test "create_user/1 returns error for duplicate" do
-    Challenge.UserRegistry.create_user("user1")
-    assert {:error, :user_already_exists} = Challenge.UserRegistry.create_user("user1")
+    "user1"
+    |> tap(&Challenge.UserRegistry.create_user/1)
+    |> then(&assert {:error, :user_already_exists} = Challenge.UserRegistry.create_user(&1))
   end
 
   test "update_balance/2 updates balance atomically" do
-    Challenge.UserRegistry.create_user("user1")
-    assert {:ok, user} = Challenge.UserRegistry.update_balance("user1", 50)
-    assert user.balance == 100_050
+    "user1"
+    |> tap(&Challenge.UserRegistry.create_user/1)
+    |> then(&Challenge.UserRegistry.update_balance(&1, 50))
+    |> then(fn {:ok, user} -> assert user.balance == 100_050 end)
   end
 
   test "update_balance/2 returns error for insufficient funds" do
-    Challenge.UserRegistry.create_user("user1")
-    assert {:error, :not_enough_money} = Challenge.UserRegistry.update_balance("user1", -200_000)
-    {:ok, user} = Challenge.UserRegistry.get_user("user1")
-    assert user.balance == 100_000
+    "user1"
+    |> tap(&Challenge.UserRegistry.create_user/1)
+    |> then(&assert {:error, :not_enough_money} = Challenge.UserRegistry.update_balance(&1, -200_000))
+    |> then(fn _ ->
+      {:ok, user} = Challenge.UserRegistry.get_user("user1")
+      assert user.balance == 100_000
+    end)
   end
 
   test "store_transaction/1 is idempotent" do
@@ -62,8 +68,10 @@ defmodule Challenge.UserRegistryTest do
 
   test "add_token/2 and valid_token?/2" do
     Challenge.UserRegistry.add_token("user1", "token1")
-    assert Challenge.UserRegistry.valid_token?("user1", "token1")
-    refute Challenge.UserRegistry.valid_token?("user1", "token2")
+    |> then(fn _ ->
+      assert Challenge.UserRegistry.valid_token?("user1", "token1")
+      refute Challenge.UserRegistry.valid_token?("user1", "token2")
+    end)
   end
 
   test "add_token/2 returns error for non-binary user_id or token" do
@@ -80,24 +88,32 @@ defmodule Challenge.UserRegistryTest do
 
   test "add_game_code/1 and valid_game_code?/1" do
     Challenge.UserRegistry.add_game_code("game1")
-    assert Challenge.UserRegistry.valid_game_code?("game1")
-    refute Challenge.UserRegistry.valid_game_code?("game2")
+    |> then(fn _ ->
+      assert Challenge.UserRegistry.valid_game_code?("game1")
+      refute Challenge.UserRegistry.valid_game_code?("game2")
+    end)
   end
 
   test "create_sub_partner/1, disable_sub_partner/1, valid_sub_partner?/1, sub_partner_disabled?/1" do
-    Challenge.UserRegistry.create_sub_partner("sub1")
-    assert Challenge.UserRegistry.valid_sub_partner?("sub1")
-    refute Challenge.UserRegistry.sub_partner_disabled?("sub1")
-    Challenge.UserRegistry.disable_sub_partner("sub1")
-    refute Challenge.UserRegistry.valid_sub_partner?("sub1")
-    assert Challenge.UserRegistry.sub_partner_disabled?("sub1")
+    "sub1"
+    |> tap(&Challenge.UserRegistry.create_sub_partner/1)
+    |> then(fn sub_id ->
+      assert Challenge.UserRegistry.valid_sub_partner?(sub_id)
+      refute Challenge.UserRegistry.sub_partner_disabled?(sub_id)
+      Challenge.UserRegistry.disable_sub_partner(sub_id)
+      refute Challenge.UserRegistry.valid_sub_partner?(sub_id)
+      assert Challenge.UserRegistry.sub_partner_disabled?(sub_id)
+    end)
   end
 
   test "disable_user/1 disables user" do
-    Challenge.UserRegistry.create_user("user1")
-    :ok = Challenge.UserRegistry.disable_user("user1")
-    {:ok, user} = Challenge.UserRegistry.get_user("user1")
-    assert user.disabled
+    "user1"
+    |> tap(&Challenge.UserRegistry.create_user/1)
+    |> then(&Challenge.UserRegistry.disable_user/1)
+    |> then(fn :ok ->
+      {:ok, user} = Challenge.UserRegistry.get_user("user1")
+      assert user.disabled
+    end)
   end
 
   test "create_user returns error for invalid user_id" do
@@ -131,15 +147,17 @@ defmodule Challenge.UserRegistryTest do
   test "remove_game_code and list_game_codes" do
     Challenge.UserRegistry.add_game_code("game1")
     Challenge.UserRegistry.add_game_code("game2")
-    assert Enum.sort(Challenge.UserRegistry.list_game_codes()) == ["game1", "game2"]
-    Challenge.UserRegistry.remove_game_code("game1")
-    assert Challenge.UserRegistry.list_game_codes() == ["game2"]
+    |> then(fn _ ->
+      assert Enum.sort(Challenge.UserRegistry.list_game_codes()) == ["game1", "game2"]
+      Challenge.UserRegistry.remove_game_code("game1")
+      assert Challenge.UserRegistry.list_game_codes() == ["game2"]
+    end)
   end
 
   test "transaction_exists? returns false for missing, true for present" do
     refute Challenge.UserRegistry.transaction_exists?("tx1")
     Challenge.UserRegistry.store_transaction(%{transaction_uuid: "tx1"})
-    assert Challenge.UserRegistry.transaction_exists?("tx1")
+    |> then(fn _ -> assert Challenge.UserRegistry.transaction_exists?("tx1") end)
   end
 
   test "health_check returns :ok" do
