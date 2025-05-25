@@ -36,7 +36,9 @@ defmodule Challenge.UserRegistryTest do
   test "update_balance/2 returns error for insufficient funds" do
     "user1"
     |> tap(&Challenge.UserRegistry.create_user/1)
-    |> then(&assert {:error, :not_enough_money} = Challenge.UserRegistry.update_balance(&1, -200_000))
+    |> then(
+      &assert {:error, :not_enough_money} = Challenge.UserRegistry.update_balance(&1, -200_000)
+    )
     |> then(fn _ ->
       {:ok, user} = Challenge.UserRegistry.get_user("user1")
       assert user.balance == 100_000
@@ -146,6 +148,7 @@ defmodule Challenge.UserRegistryTest do
 
   test "remove_game_code and list_game_codes" do
     Challenge.UserRegistry.add_game_code("game1")
+
     Challenge.UserRegistry.add_game_code("game2")
     |> then(fn _ ->
       assert Enum.sort(Challenge.UserRegistry.list_game_codes()) == ["game1", "game2"]
@@ -156,6 +159,7 @@ defmodule Challenge.UserRegistryTest do
 
   test "transaction_exists? returns false for missing, true for present" do
     refute Challenge.UserRegistry.transaction_exists?("tx1")
+
     Challenge.UserRegistry.store_transaction(%{transaction_uuid: "tx1"})
     |> then(fn _ -> assert Challenge.UserRegistry.transaction_exists?("tx1") end)
   end
