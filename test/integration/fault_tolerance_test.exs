@@ -182,9 +182,36 @@ defmodule Integration.FaultToleranceTest do
   end
 
   describe "Performance Under Stress" do
-    test "system maintains performance after multiple failures", %{root_supervisor: server} do
+    @doc """
+    Performance/Stress Test Parameters:
+
+      - user_count = 5_000
+        * Simulates a realistic, high-concurrency scenario for a gaming wallet.
+        * 5,000 concurrent users is a common benchmark for scalable Elixir/OTP systems on modern hardware.
+        * High enough to stress the supervision tree, registry, and ETS tables, but low enough to run on a developer laptop or CI server.
+
+      - :timer.sleep(200)
+        * Allows the supervision tree to recover after killing 2,500 processes.
+        * Prevents a "restart storm" that could overwhelm the DynamicSupervisors and cause test flakiness.
+        * 200ms is a compromise: long enough for BEAM to recover, short enough to keep the test fast.
+
+      - Task.await_many(tasks, 10_000)
+        * Waits up to 10 seconds for all 5,000 concurrent requests to complete.
+        * Accounts for possible GC, scheduler, or process wakeup delays under heavy load.
+        * Ensures the test doesn't fail due to minor, transient slowdowns.
+
+      - assert total_time < 5000
+        * The system should process all 5,000 requests in under 5 seconds.
+        * Reasonable upper bound for a performant, in-memory Elixir system on modern hardware.
+        * Allows for some overhead from process restarts and BEAM scheduling.
+
+      - assert avg_time < 200
+        * Each request should complete in under 200ms on average.
+        * Ensures the system is not just correct, but also responsive under load.
+    """
+    test "system maintains performance after multiple failures (5k users)", %{root_supervisor: server} do
       # Create users and establish baseline
-      user_count = 20
+      user_count = 5_000
       user_ids = for i <- 1..user_count, do: "perf_user_#{i}"
       Challenge.create_users(server, user_ids)
 
@@ -202,7 +229,7 @@ defmodule Integration.FaultToleranceTest do
         Process.exit(pid, :kill)
       end)
 
-      :timer.sleep(200)
+      :timer.sleep(200) # See justification above
 
       # Now measure performance with concurrent requests to all users
       start_time = System.monotonic_time(:millisecond)
@@ -217,21 +244,20 @@ defmodule Integration.FaultToleranceTest do
           end)
         end)
 
-      results = Task.await_many(tasks, 5_000)
+      results = Task.await_many(tasks, 10_000) # See justification above
       end_time = System.monotonic_time(:millisecond)
 
       # All should succeed despite previous failures
       Enum.each(results, &assert(&1.status == "RS_OK"))
 
-      # Performance should be reasonable (under 2 seconds for 20 concurrent requests)
       total_time = end_time - start_time
 
-      assert total_time < 2000,
+      assert total_time < 5000,
              "Performance degraded: #{total_time}ms for #{user_count} concurrent requests"
 
       # Average response time should be reasonable
       avg_time = total_time / user_count
-      assert avg_time < 100, "Average response time too high: #{avg_time}ms per request"
+      assert avg_time < 200, "Average response time too high: #{avg_time}ms per request"
     end
   end
 end

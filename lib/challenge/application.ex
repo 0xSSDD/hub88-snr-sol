@@ -25,11 +25,31 @@ defmodule Challenge.Application do
   @impl true
   @spec start(:normal | :takeover | :failover, any()) :: {:ok, pid()} | {:error, term()}
   def start(_type, _args) do
+    # Supervisor configuration rationale:
+    #
+    # max_restarts: 50_000
+    #   - Allows the system to tolerate a very high number of child process restarts within the time window.
+    #   - Necessary for high-concurrency scenarios (e.g., 5,000+ users) where mass process churn or failures may occur.
+    #   - Prevents the supervisor from shutting down during stress tests or real-world load spikes.
+    #
+    # max_seconds: 60
+    #   - Sets the time window for restart intensity to 60 seconds.
+    #   - Provides a reasonable interval for measuring restart storms without being too aggressive.
+    #
+    # partitions: System.schedulers_online()
+    #   - Creates one DynamicSupervisor per CPU core/scheduler.
+    #   - Distributes user processes evenly across all available cores for maximum concurrency and minimal contention.
+    #   - This is idiomatic for scalable Elixir/OTP systems and matches BEAM's concurrency model.
+
     children = [
       Challenge.DataSupervisor,
       {
         PartitionSupervisor,
-        child_spec: DynamicSupervisor.child_spec(strategy: :one_for_one),
+        child_spec: DynamicSupervisor.child_spec(
+          strategy: :one_for_one,
+          max_restarts: 50_000,
+          max_seconds: 60
+        ),
         name: Challenge.PartitionSupervisor,
         partitions: System.schedulers_online()
       }
