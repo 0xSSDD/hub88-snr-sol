@@ -14,26 +14,30 @@ defmodule Challenge.SignatureValidatorTest do
   end
 
   test "returns error for nil signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, nil)
+    %{foo: "bar"}
+    |> SignatureValidator.validate(nil)
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for 'bad' signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, "bad")
+    %{foo: "bar"}
+    |> SignatureValidator.validate("bad")
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for invalid base64 signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, "!!!notbase64!!!")
+    %{foo: "bar"}
+    |> SignatureValidator.validate("!!!notbase64!!!")
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for invalid PEM public key" do
     original_pubkey = Application.get_env(:challenge, :public_key)
     Application.put_env(:challenge, :public_key, "not a pem")
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    %{foo: "bar"}
+    |> SignatureValidator.validate(Base.encode64("sig"))
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
 
     Application.put_env(:challenge, :public_key, original_pubkey)
   end
@@ -42,30 +46,40 @@ defmodule Challenge.SignatureValidatorTest do
     original_pubkey = Application.get_env(:challenge, :public_key)
     Application.put_env(:challenge, :public_key, {:not, :a, :key})
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    %{foo: "bar"}
+    |> SignatureValidator.validate(Base.encode64("sig"))
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
 
     Application.put_env(:challenge, :public_key, original_pubkey)
   end
 
   test "returns error for valid base64 but invalid signature" do
-    result = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
-    assert elem(result, 0) == :error
+    %{foo: "bar"}
+    |> SignatureValidator.validate(Base.encode64("sig"))
+    |> then(&assert elem(&1, 0) == :error)
   end
 
   test "accepts both map and binary body" do
-    result1 = SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
-    result2 = SignatureValidator.validate("{\"foo\":\"bar\"}", Base.encode64("sig"))
+    result1 =
+      %{foo: "bar"}
+      |> SignatureValidator.validate(Base.encode64("sig"))
+
+    result2 =
+      "{\"foo\":\"bar\"}"
+      |> SignatureValidator.validate(Base.encode64("sig"))
+
     assert elem(result1, 0) == :error
     assert elem(result2, 0) == :error
   end
 
   test "returns error for non-binary signature" do
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, 123)
+    %{foo: "bar"}
+    |> SignatureValidator.validate(123)
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             SignatureValidator.validate(%{foo: "bar"}, :atom)
+    %{foo: "bar"}
+    |> SignatureValidator.validate(:atom)
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns :ok for valid signature and key" do
@@ -73,46 +87,52 @@ defmodule Challenge.SignatureValidatorTest do
     pubkey = TestUtils.test_public_key()
     Application.put_env(:challenge, :public_key, pubkey)
     signature = TestUtils.valid_signature(payload)
-    assert :ok = Challenge.SignatureValidator.validate(payload, signature)
+
+    payload
+    |> SignatureValidator.validate(signature)
+    |> then(&assert &1 == :ok)
   end
 
   test "returns error for nil public key" do
     Application.put_env(:challenge, :public_key, nil)
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             Challenge.SignatureValidator.validate(%{foo: "bar"}, "somesig")
+    %{foo: "bar"}
+    |> SignatureValidator.validate("somesig")
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for bad key type" do
     Application.put_env(:challenge, :public_key, 12_345)
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             Challenge.SignatureValidator.validate(%{foo: "bar"}, "somesig")
+    %{foo: "bar"}
+    |> SignatureValidator.validate("somesig")
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for bad pem (pem_decode returns empty list)" do
-    # This is not a PEM at all, so pem_decode will return []
     bad_pem = "completely invalid pem"
     Application.put_env(:challenge, :public_key, bad_pem)
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    %{foo: "bar"}
+    |> SignatureValidator.validate(Base.encode64("sig"))
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for decode_pem_entry raising" do
-    # Use a PEM that will cause pem_entry_decode to raise (simulate with garbage)
     raising_pem = "not a pem at all"
     Application.put_env(:challenge, :public_key, raising_pem)
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    %{foo: "bar"}
+    |> SignatureValidator.validate(Base.encode64("sig"))
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   test "returns error for bad key (not tuple, not binary, not nil)" do
     Application.put_env(:challenge, :public_key, [1, 2, 3])
 
-    assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
-             Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
+    %{foo: "bar"}
+    |> SignatureValidator.validate(Base.encode64("sig"))
+    |> then(&assert {:error, "RS_ERROR_INVALID_SIGNATURE"} = &1)
   end
 
   defp demo_pub_pem do
