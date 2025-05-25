@@ -111,7 +111,4 @@ This implementation is fully compliant with the assignment and Hub88 requirement
 
 ## TODOs
 * Add credo and then remove it before submitting it - Function guard, patter match to denest
-* add a test for this 3.56 conversion bs
-* TODO Use pipe operators wherever possible
 * change the testhelper file mismatch
-* demo req route

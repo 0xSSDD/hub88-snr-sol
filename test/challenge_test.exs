@@ -151,8 +151,9 @@ defmodule ChallengeTest do
       user_id: user_id,
       params: params
     } do
-      %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      |> Challenge.Gateway.bet(root_supervisor, params)
+      Challenge.Gateway.bet(root_supervisor, params, %{
+        "X-Hub88-Signature" => TestUtils.valid_signature(params)
+      })
       |> then(fn result ->
         assert result.status == "RS_OK"
         assert result.user == user_id
@@ -167,8 +168,10 @@ defmodule ChallengeTest do
       user_id: user_id
     } do
       params = TestUtils.bet_params(user_id, %{token: "not_a_real_token"})
-      %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      |> Challenge.Gateway.bet(root_supervisor, params)
+
+      Challenge.Gateway.bet(root_supervisor, params, %{
+        "X-Hub88-Signature" => TestUtils.valid_signature(params)
+      })
       |> then(&assert &1.status == "RS_ERROR_INVALID_TOKEN")
     end
 
@@ -216,6 +219,7 @@ defmodule ChallengeTest do
       bet_params: bet_params
     } do
       bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
+
       Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
       |> then(&assert &1.status == "RS_OK")
 
@@ -227,6 +231,7 @@ defmodule ChallengeTest do
         })
 
       win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+
       Challenge.Gateway.win(root_supervisor, win_params, win_headers)
       |> then(fn win_result ->
         assert win_result.status == "RS_OK"
@@ -250,6 +255,7 @@ defmodule ChallengeTest do
         })
 
       win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+
       Challenge.Gateway.win(root_supervisor, win_params, win_headers)
       |> then(fn win_result ->
         assert win_result.status == "RS_ERROR_TRANSACTION_DOES_NOT_EXIST"
@@ -264,6 +270,7 @@ defmodule ChallengeTest do
       bet_params: bet_params
     } do
       bet_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(bet_params)}
+
       Challenge.Gateway.bet(root_supervisor, bet_params, bet_headers)
       |> then(&assert &1.status == "RS_OK")
 
@@ -275,6 +282,7 @@ defmodule ChallengeTest do
         })
 
       win_headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(win_params)}
+
       Challenge.Gateway.win(root_supervisor, win_params, win_headers)
       |> then(&assert &1.status == "RS_OK")
     end
