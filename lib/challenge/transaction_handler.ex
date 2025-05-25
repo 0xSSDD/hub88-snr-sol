@@ -1,11 +1,32 @@
 defmodule Challenge.TransactionHandler do
   @moduledoc """
-  Handles transaction processing logic.
+  Handles all transaction processing logic for the Challenge application.
 
-  NOTE: In a real HTTP API, the signature would be extracted from the
-  "X-Hub88-Signature" header (e.g., via Plug, Phoenix, or Cowboy).
-  Here, for pure OTP and testability, we require the signature as a
-  separate argument to the handler functions.
+  This module is responsible for validating, routing, and processing all bet and win
+  transactions according to the Hub88 Wallet API specification. It acts as the main
+  business logic entrypoint for transaction requests, orchestrating signature validation,
+  input validation, idempotency, and error handling.
+
+  ## Responsibilities
+    - Validates request signatures using `SignatureValidator`.
+    - Validates all required fields and business rules for each transaction.
+    - Delegates user and transaction process management to `UserManager`.
+    - Ensures idempotency and atomicity by routing requests to the correct per-user
+      `UserTransactionServer` process.
+    - Handles and formats all error responses using `ErrorHandler`.
+
+  ## Design Notes
+    - This module is stateless and purely functional; all stateful operations are delegated
+      to GenServers (`UserTransactionServer`, `UserRegistry`).
+    - Signature validation is performed before any business logic to ensure security.
+    - All transaction processing is serialized per user to prevent race conditions and
+      double-spending.
+
+  ## Usage
+      Challenge.TransactionHandler.bet(server, body, signature)
+      Challenge.TransactionHandler.win(server, body, signature)
+
+  See the README and architecture diagram for a high-level overview.
   """
   alias Challenge.{UserManager, ErrorHandler, UserTransactionServer, SignatureValidator}
 
@@ -22,20 +43,49 @@ defmodule Challenge.TransactionHandler do
 )
 
   @doc """
-  Process a bet transaction.
+  Processes a bet transaction.
+
+  ## Parameters
+    - `server`: (unused, for API compatibility)
+    - `body`: The transaction request body as a map with atom keys.
+    - `signature`: The cryptographic signature to validate.
+
+  ## Returns
+    - A response map as specified by the Hub88 Wallet API.
+
+  ## Flow
+    1. Validates the signature.
+    2. Validates all required fields and business rules.
+    3. Routes the request to the correct per-user `UserTransactionServer`.
+    4. Returns the result or an error response.
   """
   def bet(_server, body, signature) do
     process_transaction(:bet, body, signature)
   end
 
   @doc """
-  Process a win transaction.
+  Processes a win transaction.
+
+  ## Parameters
+    - `server`: (unused, for API compatibility)
+    - `body`: The transaction request body as a map with atom keys.
+    - `signature`: The cryptographic signature to validate.
+
+  ## Returns
+    - A response map as specified by the Hub88 Wallet API.
+
+  ## Flow
+    1. Validates the signature.
+    2. Validates all required fields and business rules.
+    3. Routes the request to the correct per-user `UserTransactionServer`.
+    4. Returns the result or an error response.
   """
   def win(_server, body, signature) do
     process_transaction(:win, body, signature)
   end
 
   # Common Transaction processing logic
+  @doc false
   defp process_transaction(type, body, signature) do
     with :ok <- SignatureValidator.validate(body, signature),
          :ok <- validate_required_fields(body, type),
@@ -67,6 +117,7 @@ defmodule Challenge.TransactionHandler do
 
   # --- Private Helpers ---
 
+  @doc false
   defp validate_required_fields(body, type) do
     common_fields = [:user, :transaction_uuid, :amount, :request_uuid, :currency, :game_code]
 
@@ -84,18 +135,21 @@ defmodule Challenge.TransactionHandler do
     if Enum.empty?(missing_fields), do: :ok, else: {:error, "RS_ERROR_WRONG_SYNTAX"}
   end
 
+  @doc false
   defp validate_user_id(%{user: user_id}) when is_binary(user_id) do
     if String.length(user_id) >= 3, do: :ok, else: {:error, "RS_ERROR_WRONG_SYNTAX"}
   end
 
   defp validate_user_id(_), do: {:error, "RS_ERROR_WRONG_SYNTAX"}
 
+  @doc false
   defp validate_amount(%{amount: amount}) when is_integer(amount) do
     if amount > 0, do: :ok, else: {:error, "RS_ERROR_WRONG_TYPES"}
   end
 
   defp validate_amount(_), do: {:error, "RS_ERROR_WRONG_TYPES"}
 
+  @doc false
   # Token is only required for bets, not for wins/rollbacks
   defp validate_token(%{token: token, user: user_id}, :bet) do
     cond do
@@ -113,10 +167,10 @@ defmodule Challenge.TransactionHandler do
     end
   end
 
-  # For win and rollback, we don't check for token validity
   defp validate_token(_body, :win), do: :ok
   defp validate_token(_body, _), do: :ok
 
+  @doc false
   defp validate_game_code(%{game_code: game_code}) do
     if Challenge.UserRegistry.valid_game_code?(game_code),
       do: :ok,
@@ -125,6 +179,7 @@ defmodule Challenge.TransactionHandler do
 
   defp validate_game_code(_), do: {:error, "RS_ERROR_INVALID_GAME"}
 
+  @doc false
   defp validate_currency_format(%{currency: currency}) do
     if is_binary(currency) and currency in @valid_currencies,
       do: :ok,
@@ -133,6 +188,7 @@ defmodule Challenge.TransactionHandler do
 
   defp validate_currency_format(_), do: {:error, "RS_ERROR_WRONG_TYPES"}
 
+  @doc false
   defp validate_operator_and_sub_partner(%{user: user_id} = body) do
     # Check if operator (user) is disabled
     case Challenge.UserRegistry.get_user(user_id) do
@@ -151,6 +207,7 @@ defmodule Challenge.TransactionHandler do
 
   defp validate_operator_and_sub_partner(_), do: :ok
 
+  @doc false
   defp validate_sub_partner_id(%{sub_partner_id: sub_partner_id})
        when not is_binary(sub_partner_id) or sub_partner_id == "" do
     {:error, "RS_ERROR_WRONG_TYPES"}

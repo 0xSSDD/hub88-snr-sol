@@ -1,63 +1,90 @@
 defmodule Challenge.UserTransactionServer do
   @moduledoc """
-  Per-user process to serialize transactions and maintain consistency.
+  Per-user GenServer process to serialize and process all transactions for a single user.
+
+  ## Purpose
+
+  - Ensures **transactional consistency** and **idempotency** for all user operations.
+  - Each user has a dedicated process, so requests for different users do not block each other.
+  - All transaction logic (bet, win) is serialized per user, preventing race conditions.
 
   ## Idempotency and Concurrency
 
-  This server serializes all transactions for a user through a single GenServer process.
-  Transaction idempotency is handled atomically using ETS tables as the source of truth.
+  - Transaction idempotency is enforced using ETS tables as the source of truth.
+  - Only one transaction with a given UUID is ever processed for a user.
+  - Repeated requests with the same UUID return the same result.
+  - High throughput: each user has their own process, so requests for different users do not block each other.
 
-  This approach guarantees:
-    - Idempotency: repeated requests with the same UUID return the same result.
-    - Atomicity: only one transaction with a given UUID is ever processed for a user.
-    - High throughput: each user has their own process, so requests for different users do not block each other.
+  ## Registry
 
-  This is the idiomatic OTP approach for high-availability, high-throughput systems.
+  - Each process is registered via `Registry` for fast lookup and supervision.
   """
+
   use GenServer
   alias Challenge.{UserRegistry, ErrorHandler}
 
   # Client API
+
+  @doc """
+  Starts a UserTransactionServer for the given `user_id`.
+
+  Registers the process via `Registry` for lookup.
+  """
   def start_link(user_id) do
     GenServer.start_link(__MODULE__, user_id, name: via_tuple(user_id))
   end
 
+  @doc """
+  Handles a bet transaction for the user.
+
+  Returns a response map or error.
+  """
   def bet(server, params) do
     GenServer.call(server, {:bet, params})
   end
 
+  @doc """
+  Handles a win transaction for the user.
+
+  Returns a response map or error.
+  """
   def win(server, params) do
     GenServer.call(server, {:win, params})
   end
 
+  @doc false
   defp via_tuple(user_id) do
     {:via, Registry, {Challenge.ProcessRegistry, user_id}}
   end
 
   # Server callbacks
+
   @impl true
+  @doc false
   def init(user_id) do
-    # Simple state - ETS tables handle transaction tracking
+    # State is minimal; ETS tables handle transaction tracking and user data.
     {:ok, %{user_id: user_id}}
   end
 
   @impl true
+  @doc false
   def handle_call({:win, params}, _from, state) do
     result = handle_transaction(:win, params, state)
     {:reply, result, state}
   end
 
   @impl true
+  @doc false
   def handle_call({:bet, params}, _from, state) do
     result = handle_transaction(:bet, params, state)
     {:reply, result, state}
   end
 
-  # Main transaction handler with atomic idempotency
+  @doc false
   defp handle_transaction(type, params, %{user_id: user_id}) do
     transaction_uuid = params.transaction_uuid
 
-    # Increment and get the new count
+    # Increment and get the new count for daily request limit
     current_count = Challenge.UserRegistry.increment_user_limit(user_id)
     limit = Challenge.UserRegistry.get_daily_request_limit()
 
@@ -77,6 +104,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp handle_duplicate_transaction(user_id, params, original_tx) do
     # Check for duplicate with mismatched fields
     if duplicate_transaction_mismatch?(original_tx, params) do
@@ -99,6 +127,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp process_new_transaction(type, user_id, params) do
     case UserRegistry.get_user(user_id) do
       {:ok, %{disabled: true}} ->
@@ -112,6 +141,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp execute_transaction(:bet, user_id, user, params) when user.currency != params.currency do
     ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
   end
@@ -149,6 +179,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp execute_transaction(:win, user_id, user, params) do
     case validate_reference_transaction(params) do
       :ok ->
@@ -159,10 +190,12 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp execute_win_transaction(user_id, user, params) when user.currency != params.currency do
     ErrorHandler.error_response(user_id, "RS_ERROR_WRONG_CURRENCY", params)
   end
 
+  @doc false
   defp execute_win_transaction(user_id, user, params) when user.currency == params.currency do
     # Credit amount
     case process_transaction_atomically(user_id, params, params.amount) do
@@ -185,7 +218,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
-  # Atomic transaction processing that handles race conditions
+  @doc false
   defp process_transaction_atomically(user_id, params, amount) do
     # First, try to store the transaction atomically
     case UserRegistry.store_transaction(
@@ -201,6 +234,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp validate_reference_transaction(params) do
     ref_tx_uuid = Map.get(params, :reference_transaction_uuid)
 
@@ -217,6 +251,7 @@ defmodule Challenge.UserTransactionServer do
     end
   end
 
+  @doc false
   defp duplicate_transaction_mismatch?(original, incoming) do
     # Compare all relevant fields
     Enum.any?(
