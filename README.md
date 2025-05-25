@@ -68,6 +68,8 @@ For further clarifications, be in touch with the recruitment contact.
 Here is the architecture diagram
 ![Architecture Diagram](architecture.excalidraw.svg)
 
+Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the performance tests in `test/integration/fault_tolerance_test.exs` test for high loads, e.g. 5000 users. simultaneusly seeing crashes etc. Redudcing that number will speed up tests.
+
 ### API Contract Compliance
 
 - **Strict Adherence to Hub88 API Spec:**

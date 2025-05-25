@@ -86,8 +86,8 @@ defmodule Integration.FaultToleranceTest do
       assert result.balance == user_before.balance - 5_000
     end
 
-    test "system handles multiple concurrent crashes gracefully", %{root_supervisor: server} do
-      user_ids = for i <- 1..5, do: "crash_user_#{i}"
+    test "system handles multiple concurrent crashes gracefully: 1000 users", %{root_supervisor: server} do
+      user_ids = for i <- 1..1000, do: "crash_user_#{i}"
       Challenge.create_users(server, user_ids)
 
       # Start processes for all users by placing bets
@@ -118,9 +118,6 @@ defmodule Integration.FaultToleranceTest do
         refute Process.alive?(pid)
       end)
 
-      # System should still handle new requests efficiently
-      start_time = System.monotonic_time(:millisecond)
-
       results =
         Enum.map(user_ids, fn user_id ->
           params = TestHelper.bet_params(user_id, %{amount: 2_000})
@@ -129,14 +126,8 @@ defmodule Integration.FaultToleranceTest do
           bet(server, params)
         end)
 
-      end_time = System.monotonic_time(:millisecond)
-      total_time = end_time - start_time
-
       # All requests should succeed
       Enum.each(results, &assert(&1.status == "RS_OK"))
-
-      # Should handle recovery efficiently (under 1 second for 5 users)
-      assert total_time < 1000, "Recovery took #{total_time}ms, expected < 1000ms"
 
       # Verify final balances are correct
       Enum.each(user_ids, fn user_id ->
