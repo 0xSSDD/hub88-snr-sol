@@ -148,21 +148,27 @@ defmodule Integration.FaultToleranceTest do
   end
 
   describe "ETS Data Persistence" do
-    test "ETS tables survive process crashes and maintain data integrity", %{
+    test "ETS tables survive process crashes and maintain data integrity: 1000 transactions", %{
       root_supervisor: server
     } do
       user_id = "ets_test_user"
       Challenge.create_users(server, [user_id])
 
-      # Create transaction history
-      tx_count = 10
+      tx_count = 1000
+      amount = 1_000
+      starting_balance = 100_000
 
-      for _i <- 1..tx_count do
-        params = TestHelper.bet_params(user_id, %{amount: 1_000})
+      for i <- 1..tx_count do
+        params = TestHelper.bet_params(user_id, %{amount: amount})
         Challenge.UserRegistry.add_token(user_id, params.token)
         Challenge.UserRegistry.add_game_code(params.game_code)
         result = bet(server, params)
-        assert result.status == "RS_OK"
+
+        if i <= div(starting_balance, amount) do
+          assert result.status == "RS_OK"
+        else
+          assert result.status == "RS_ERROR_NOT_ENOUGH_MONEY"
+        end
       end
 
       # Kill the user's transaction server
@@ -172,7 +178,7 @@ defmodule Integration.FaultToleranceTest do
 
       # ETS data should still be accessible directly
       {:ok, user} = Challenge.UserRegistry.get_user(user_id)
-      assert user.balance == 100_000 - tx_count * 1_000
+      assert user.balance == 0
 
       # Transaction history should be preserved
       stats = Challenge.UserRegistry.get_stats()
