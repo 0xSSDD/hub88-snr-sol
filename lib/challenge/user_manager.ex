@@ -56,30 +56,31 @@ defmodule Challenge.UserManager do
     - Handles race conditions by re-checking the registry if the process was started concurrently.
   """
   def get_user_server(user_id) do
-    # Use the renamed registry
     case Registry.lookup(Challenge.ProcessRegistry, user_id) do
       [{pid, _}] ->
         pid
 
       [] ->
-        # Start the UserTransactionServer under the correct DynamicSupervisor partitioned by user_id,
-        # using the PartitionSupervisor defined in application.ex
-        case DynamicSupervisor.start_child(
-               {:via, PartitionSupervisor, {Challenge.PartitionSupervisor, user_id}},
-               {Challenge.UserTransactionServer, user_id}
-             ) do
-          {:ok, pid} ->
-            pid
+        start_user_transaction_server(user_id)
+    end
+  end
 
-          {:error, {:already_started, pid}} ->
-            pid
+  defp start_user_transaction_server(user_id) do
+    case DynamicSupervisor.start_child(
+           {:via, PartitionSupervisor, {Challenge.PartitionSupervisor, user_id}},
+           {Challenge.UserTransactionServer, user_id}
+         ) do
+      {:ok, pid} ->
+        pid
 
-          # Handle race condition
-          _ ->
-            case Registry.lookup(Challenge.ProcessRegistry, user_id) do
-              [{pid, _}] -> pid
-              [] -> nil
-            end
+      {:error, {:already_started, pid}} ->
+        pid
+
+      # Handle race condition
+      _ ->
+        case Registry.lookup(Challenge.ProcessRegistry, user_id) do
+          [{pid, _}] -> pid
+          [] -> nil
         end
     end
   end

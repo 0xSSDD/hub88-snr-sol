@@ -74,22 +74,16 @@ defmodule Challenge.SignatureValidator do
   # This is a basic implementation that handles the common cases needed for this challenge
   defp encode_json(value) when is_map(value) do
     entries =
-      value
-      |> Enum.map(fn {k, v} ->
+      Enum.map_join(value, ",", fn {k, v} ->
         key_str = if is_atom(k), do: to_string(k), else: k
         "\"#{escape_string(key_str)}\":#{encode_json(v)}"
       end)
-      |> Enum.join(",")
 
     "{#{entries}}"
   end
 
   defp encode_json(value) when is_list(value) do
-    entries =
-      value
-      |> Enum.map(&encode_json/1)
-      |> Enum.join(",")
-
+    entries = Enum.map_join(value, ",", &encode_json/1)
     "[#{entries}]"
   end
 
