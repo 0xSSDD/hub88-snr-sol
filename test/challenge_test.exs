@@ -1,4 +1,26 @@
 defmodule ChallengeTest do
+  @moduledoc """
+  Acceptance and smoke tests for the public Challenge API.
+
+  This file ensures that the *actual* public API surface (`Challenge.start/0`, `Challenge.create_users/2`, `Challenge.bet/2`, `Challenge.win/2`)
+  behaves correctly from a client perspective, regardless of internal implementation.
+
+  ## Why keep these tests?
+
+  - **API Contract:** Verifies that the public API remains stable and correct, even if internal modules or flows change.
+  - **End-to-End Coverage:** Exercises the full stack, including supervision, process registration, signature validation, and business logic.
+  - **Smoke Testing:** Catches regressions in wiring, argument handling, or integration that lower-level tests may miss.
+  - **Minimal Redundancy:** Only a few representative error and success cases are tested here, as detailed business logic is covered in integration/unit tests.
+
+  ## When to add tests here?
+
+  - When you want to guarantee a specific behavior or error is visible to API consumers.
+  - When adding or changing public API functions.
+  - When you want a high-level confidence check after major refactors.
+
+  For detailed business logic, see the integration and unit test suites.
+  """
+
   use ExUnit.Case
   doctest Challenge
 
@@ -153,45 +175,6 @@ defmodule ChallengeTest do
       assert result.request_uuid == params.request_uuid
     end
 
-    test "RS_ERROR_UNKNOWN(2) for non-existent user", %{root_supervisor: root_supervisor} do
-      # Do NOT create the user
-      user_id = "ghost_user"
-      params = TestUtils.bet_params(user_id)
-      # Register token and game code for completeness
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      Challenge.UserRegistry.add_game_code(params.game_code)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_UNKNOWN"
-      assert result.user == user_id
-      assert result.request_uuid == params.request_uuid
-    end
-
-    test "RS_ERROR_INVALID_PARTNER(3) for disabled sub_partner_id", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{sub_partner_id: "sub_disabled"})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      Challenge.UserRegistry.create_sub_partner("sub_disabled")
-      Challenge.UserRegistry.disable_sub_partner("sub_disabled")
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_INVALID_PARTNER"
-    end
-
-    test "RS_ERROR_INVALID_PARTNER(3) for invalid sub_partner_id", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{sub_partner_id: "nonexistent"})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_INVALID_PARTNER"
-    end
-
     test "RS_ERROR_INVALID_TOKEN(4) for invalid token", %{
       root_supervisor: root_supervisor,
       user_id: user_id
@@ -200,28 +183,6 @@ defmodule ChallengeTest do
       headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
       result = Challenge.Gateway.bet(root_supervisor, params, headers)
       assert result.status == "RS_ERROR_INVALID_TOKEN"
-    end
-
-    test "RS_ERROR_INVALID_GAME(5) for invalid game_code", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{game_code: "ont_whitejackclassic"})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_INVALID_GAME"
-    end
-
-    test "RS_ERROR_WRONG_CURRENCY(6) for currency mismatch", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{currency: "EUR"})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_WRONG_CURRENCY"
     end
 
     test "RS_ERROR_NOT_ENOUGH_MONEY(7) for excessive bet", %{
@@ -241,114 +202,6 @@ defmodule ChallengeTest do
 
       {:ok, user_after} = Challenge.UserRegistry.get_user(user_id)
       assert user_after.balance == user_before.balance
-    end
-
-    test "RS_ERROR_USER_DISABLED(8) for disabled user", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id,
-      params: params
-    } do
-      :ok = Challenge.UserRegistry.disable_user(user_id)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-
-      assert result.status == "RS_ERROR_USER_DISABLED"
-    end
-
-    test "RS_ERROR_INVALID_SIGNATURE(9) for invalid signature", %{
-      root_supervisor: root_supervisor,
-      params: params
-    } do
-      headers = %{"X-Hub88-Signature" => "invalid_signature"}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_INVALID_SIGNATURE"
-    end
-
-    test "RS_ERROR_TOKEN_EXPIRED(10) for expired token", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{token: "expired"})
-      Challenge.UserRegistry.add_game_code(params.game_code)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_TOKEN_EXPIRED"
-      assert result.user == user_id
-      assert result.request_uuid == params.request_uuid
-    end
-
-    test "RS_ERROR_WRONG_SYNTAX(11) for missing required fields", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params =
-        TestUtils.bet_params(user_id)
-        |> Map.drop([:transaction_uuid])
-
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_WRONG_SYNTAX"
-    end
-
-    test "RS_ERROR_WRONG_TYPES(12) for a random currency", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{currency: "DOG"})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_WRONG_TYPES"
-    end
-
-    test "RS_ERROR_WRONG_TYPES(12) for non-binary sub_partner_id", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{sub_partner_id: 123})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_WRONG_TYPES"
-    end
-
-    test "RS_ERROR_DUPLICATE_TRANSACTION(13) for same UUID, different params", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id
-    } do
-      params = TestUtils.bet_params(user_id, %{amount: 5})
-      Challenge.UserRegistry.add_token(user_id, params.token)
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-      Challenge.Gateway.bet(root_supervisor, params, headers)
-
-      # Change amount, but keep transaction_uuid the same
-      params2 = %{params | amount: 10}
-      headers2 = %{"X-Hub88-Signature" => TestUtils.valid_signature(params2)}
-      result = Challenge.Gateway.bet(root_supervisor, params2, headers2)
-      assert result.status == "RS_ERROR_DUPLICATE_TRANSACTION"
-    end
-
-    test "RS_ERROR_LIMIT_REACHED(15) when daily request limit is hit", %{
-      root_supervisor: root_supervisor,
-      user_id: user_id,
-      params: params
-    } do
-      # Set a low limit for fast testing
-      Application.put_env(:challenge, :daily_request_limit, 3)
-
-      headers = %{"X-Hub88-Signature" => TestUtils.valid_signature(params)}
-
-      # Make requests up to the limit
-      for _ <- 1..3 do
-        result = Challenge.Gateway.bet(root_supervisor, params, headers)
-        assert result.status == "RS_OK"
-      end
-
-      # The next request should fail with RS_ERROR_LIMIT_REACHED
-      result = Challenge.Gateway.bet(root_supervisor, params, headers)
-      assert result.status == "RS_ERROR_LIMIT_REACHED"
-      assert result.user == user_id
-      assert result.request_uuid == params.request_uuid
     end
   end
 

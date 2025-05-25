@@ -1,4 +1,21 @@
 defmodule Challenge.UserTransactionServerTest do
+  @moduledoc """
+  Unit tests for Challenge.UserTransactionServer.
+
+  These tests focus on the core per-user transaction process logic, ensuring that:
+  - All business rules (idempotency, balance checks, currency validation, etc.) are enforced at the process level.
+  - The GenServer correctly serializes and processes transactions for a single user.
+  - Edge cases (duplicate transactions, insufficient funds, disabled users, etc.) are handled as expected.
+
+  ## Why keep these tests?
+
+  - **Business Logic Coverage:** Verifies the correctness of transaction processing in isolation from the rest of the system.
+  - **Regression Safety:** Catches bugs in the core transaction logic before they can affect the full stack.
+  - **Fast Feedback:** Runs quickly and deterministically, as it does not depend on the full supervision tree or external processes.
+
+  For end-to-end and API-level tests, see the integration and acceptance test suites.
+  """
+
   use ExUnit.Case, async: false
 
   setup do

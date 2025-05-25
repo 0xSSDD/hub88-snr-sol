@@ -1,4 +1,22 @@
 defmodule Challenge.TransactionHandlerTest do
+  @moduledoc """
+  Integration tests for Challenge.TransactionHandler.
+
+  These tests exercise the full transaction flow, including:
+  - Signature validation, user and token lookup, and business rule enforcement.
+  - Orchestration between the handler, user registry, and per-user transaction servers.
+  - End-to-end error handling and idempotency.
+
+  ## Why keep these tests?
+
+  - **Full Stack Coverage:** Ensures that all components interact correctly and that the system behaves as expected in real-world scenarios.
+  - **API Contract:** Verifies that the handler returns the correct responses for both valid and invalid requests.
+  - **Regression Detection:** Catches integration bugs that may not be visible in unit tests.
+
+  For public API acceptance tests, see `challenge_test.exs`.
+  For isolated business logic, see the unit test suites.
+  """
+
   use ExUnit.Case, async: false
 
   setup do
