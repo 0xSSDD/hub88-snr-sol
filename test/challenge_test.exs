@@ -467,5 +467,4 @@ defmodule ChallengeTest do
       Challenge.win(server, body)
     end
   end
-
 end

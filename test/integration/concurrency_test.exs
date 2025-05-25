@@ -87,6 +87,7 @@ defmodule ConcurrencyTest do
           end)
         end)
       end)
+
       TestUtils.stop_challenge(root_supervisor)
     end)
   end
