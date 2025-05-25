@@ -83,7 +83,7 @@ defmodule Challenge.SignatureValidatorTest do
   end
 
   test "returns error for bad key type" do
-    Application.put_env(:challenge, :public_key, 12345)
+    Application.put_env(:challenge, :public_key, 12_345)
     assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
       Challenge.SignatureValidator.validate(%{foo: "bar"}, "somesig")
   end
@@ -105,7 +105,7 @@ defmodule Challenge.SignatureValidatorTest do
   end
 
   test "returns error for bad key (not tuple, not binary, not nil)" do
-    Application.put_env(:challenge, :public_key, [1,2,3])
+    Application.put_env(:challenge, :public_key, [1, 2, 3])
     assert {:error, "RS_ERROR_INVALID_SIGNATURE"} =
       Challenge.SignatureValidator.validate(%{foo: "bar"}, Base.encode64("sig"))
   end
