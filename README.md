@@ -65,7 +65,7 @@ If the points above are satisfied, a technical interview will be scheduled to di
 For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
-
+![Architecture Diagram](architecture.excalidraw.svg)
 
 
 
@@ -108,7 +108,8 @@ Certainly! Here’s a **concise explanation** of how concurrency is handled in y
 
 
 ## TODOs
-* Add credo and then remove it before submitting it
+* Add credo and then remove it before submitting it - Function guard, patter match to denest
 * add a test for this 3.56 conversion bs
 * TODO Use pipe operators wherever possible
 * change the testhelper file mismatch
+* demo req route

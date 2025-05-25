@@ -15,8 +15,6 @@ defmodule Challenge do
   Start a linked and isolated supervision tree and return the root server that
   will handle the requests.
 
-  NOTE: The error branch in Challenge.start/0 for unexpected Application.start/2 return
-  is not directly testable without patching or mocks, which are not allowed by challenge rules.
   """
   @spec start :: GenServer.server()
   def start do
@@ -32,7 +30,7 @@ defmodule Challenge do
   @doc """
   Create non-existing users with currency as "USD" and amount as 100_000.
 
-  It must ignore empty binary `""` or if the user already exists.
+  It ignores empty binary `""` or if the user already exists.
   """
   @spec create_users(server :: GenServer.server(), users :: [String.t()]) :: :ok
   def create_users(server, users) do
