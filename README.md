@@ -65,13 +65,16 @@ If the points above are satisfied, a technical interview will be scheduled to di
 For further clarifications, be in touch with the recruitment contact.
 
 # Elixir Developer Solution
+Here is the architecture diagram
 ![Architecture Diagram](architecture.excalidraw.svg)
 
+# TODO: Flesh this readme out
 
-
-## Signature Verification
+### Signature Verification
 
 All API requests (e.g., `/transaction/bet`, `/transaction/win`) must include a cryptographic signature in the `X-Hub88-Signature` header, as required by the [Hub88 Wallet API spec](https://docs.hub88.io/developer-docs/operator-api-reference/wallet-api).
+
+This wasnt required, but as I wasnt sure and the recruiter took time to get back to me I went ahead and implemented basic signature verification.
 
 **How it works:**
 - The client signs the JSON-encoded request body using **RSA-SHA256** with the private key.
@@ -90,8 +93,7 @@ This implementation is fully compliant with the assignment and Hub88 requirement
 
 **Note:** These keys are for testing only and are safe to commit to the repository.
 
-## Concurrency
-Certainly! Here’s a **concise explanation** of how concurrency is handled in your code:
+### Concurrency Concerns
 
 - **Per-user GenServer:**
   Each user has a dedicated `UserTransactionServer` GenServer, serializing all their transactions. This prevents race conditions for a single user's balance.
