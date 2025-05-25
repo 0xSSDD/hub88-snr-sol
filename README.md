@@ -63,6 +63,7 @@ Your project must successfully:
 If the points above are satisfied, a technical interview will be scheduled to discuss the results and the development process of the challenge.
 
 For further clarifications, be in touch with the recruitment contact.
+------
 
 # Elixir Developer Solution
 Here is the architecture diagram
@@ -70,7 +71,7 @@ Here is the architecture diagram
 
 Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the performance tests in `test/integration/fault_tolerance_test.exs` test for high loads, e.g. 5000 users. simultaneusly seeing crashes etc. Redudcing that number will speed up tests.
 
-### API Contract Compliance
+## API Contract Compliance
 
 - **Strict Adherence to Hub88 API Spec:**
   All endpoints are implemented to match the [Hub88 Operator API Reference](https://docs.hub88.io/developer-docs/operator-api-reference/wallet-api) exactly, including required fields, error codes, and response formats.
@@ -88,7 +89,7 @@ Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the p
 - **Signature Verification:**
   Every request is validated using RSA-SHA256 signatures, ensuring authenticity and integrity.
 
-### Performance & Scalability
+## Performance & Scalability
 
 - **High Throughput by Design:**
   The solution leverages Elixir/OTP primitives like PartitionSupervisor and DynamicSupervisors to handle thousands of concurrent users and requests efficiently.
@@ -102,7 +103,7 @@ Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the p
 - **Tested for Scalability:**
   The test suite includes scenarios with 5,000+ users and thousands of concurrent requests, demonstrating the system's ability to scale and recover in a production-like environment.
 
-### Signature Verification
+## Signature Verification
 
 All API requests (e.g., `/transaction/bet`, `/transaction/win`) must include a cryptographic signature in the `X-Hub88-Signature` header, as required by the [Hub88 Wallet API spec](https://docs.hub88.io/developer-docs/operator-api-reference/wallet-api).
 
@@ -124,7 +125,7 @@ This implementation is fully compliant with the assignment and Hub88 requirement
 
 **Note:** These keys are for testing only and are safe to commit to the repository.
 
-### Concurrency Concerns
+## Performance and concurrency Concerns
 
 - **Per-user GenServer:**
   Each user has a dedicated `UserTransactionServer` GenServer, serializing all their transactions. This prevents race conditions for a single user's balance.
