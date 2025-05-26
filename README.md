@@ -107,53 +107,29 @@ This project implements a robust, high-concurrency Wallet API for Hub88, using o
 
 Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the performance tests in `test/integration/fault_tolerance_test.exs` test for high loads, e.g. 5000 users. simultaneusly seeing crashes etc. Redudcing that number will speed up tests.
 
-## API Contract Compliance
 
-- **Strict Adherence to Hub88 API Spec:**
-  All endpoints are implemented to match the [Hub88 Operator API Reference](https://docs.hub88.io/developer-docs/operator-api-reference/wallet-api) exactly, including required fields, error codes, and response formats.
-
-- **Idempotency & Retry Safety:**
-  Each `transaction_uuid` is processed at most once, ensuring safe handling of retries and duplicate requests as per Hub88's requirements.
-
-### Error Handling & Response Codes
-
-- **Comprehensive Error Handling:**
-  All documented error codes and statuses are returned as specified, covering invalid tokens, insufficient funds, duplicate transactions, and more.
-
-### Security & Signature Verification
-
-- **Signature Verification:**
-  Every request is validated using RSA-SHA256 signatures, ensuring authenticity and integrity.
-
-## Performance & Scalability
+## Performance, Scalability & Concurrency
 
 - **High Throughput by Design:**
-  The solution leverages Elixir/OTP primitives like PartitionSupervisor and DynamicSupervisors to handle thousands of concurrent users and requests efficiently.
+  The solution leverages Elixir/OTP primitives like PartitionSupervisor and DynamicSupervisors to efficiently handle thousands of concurrent users and requests.
+
+- **Per-User Isolation:**
+  Each user has a dedicated `UserTransactionServer` GenServer, ensuring all their transactions are serialized. This prevents race conditions and double-spending for a single user's balance.
+
+- **Atomicity & Idempotency:**
+  Transaction UUIDs are stored in ETS tables using `:ets.insert_new`, guaranteeing that each transaction is processed at most once, even under concurrent or repeated requests.
+
+- **Atomic Balance Updates:**
+  All balance changes are performed via a GenServer call to `UserRegistry`, ensuring atomic, race-free updates.
 
 - **Supervisor Tuning for Real-World Load:**
-  The supervision tree is explicitly configured (`max_restarts: 50_000`, `max_seconds: 60`, one partition per CPU core) to tolerate mass process churn and rapid restarts.
+  The supervision tree is explicitly configured (`max_restarts: 50_000`, `max_seconds: 60`, one partition per CPU core) to tolerate mass process churn and rapid restarts, as validated by integration tests simulating thousands of users and failures.
 
 - **No Data Loss on Crashes:**
   All critical data (user balances, transaction history, idempotency keys) is stored in ETS tables managed by supervised GenServers, ensuring persistence and consistency even if user processes or supervisors crash and restart.
 
-- **Tested for Scalability:**
+- **Proven Scalability:**
   The test suite includes scenarios with 5,000+ users and thousands of concurrent requests, demonstrating the system's ability to scale and recover in a production-like environment.
-
-
-## Performance and concurrency Concerns
-
-- **Per-user GenServer:**
-  Each user has a dedicated `UserTransactionServer` GenServer, serializing all their transactions. This prevents race conditions for a single user's balance.
-
-- **Atomic Transaction Idempotency:**
-  Transaction UUIDs are stored in an ETS table using `:ets.insert_new`, ensuring only one process can process a given transaction, even under concurrent requests.
-
-- **Atomic Balance Updates:**
-  All balance changes are performed via a GenServer call to `UserRegistry`, which atomically checks and updates the balance, preventing double-spending.
-
-- **Race Condition Safety:**
-  If two requests for the same transaction arrive at the same time, only one will be processed as new; the other will be recognized as a duplicate and handled accordingly.
-
 
 ## Signature Verification
 
