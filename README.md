@@ -70,6 +70,41 @@ For further clarifications, be in touch with the recruitment contact.
 Here is the architecture diagram `architecture.excalidraw.svg`
 ![Architecture Diagram](architecture.excalidraw.svg)
 
+## Architecture Overview
+
+This project implements a robust, high-concurrency Wallet API for Hub88, using only Elixir/OTP primitives (no external dependencies or databases).
+
+### System Architecture
+
+- **Supervision Tree:**
+  The application uses a partitioned supervision tree for maximum concurrency and fault tolerance. Each user's transactions are handled by a dedicated GenServer, supervised by a DynamicSupervisor. Supervisors are partitioned per CPU core for optimal load distribution.
+
+- **Data Management:**
+  All user, transaction, and token data is stored in ETS tables, managed by a GenServer. This ensures atomicity, idempotency, and high-throughput access.
+
+- **Fault Tolerance:**
+  The system is designed to recover gracefully from process crashes and mass failures. Supervisors are tuned to handle thousands of restarts per minute, and all critical data is persisted in ETS.
+
+### Request Flow
+
+1. **API Entry:**
+  Requests enter via the public `Challenge` module, which validates and routes them.
+2. **Signature Verification:**
+  Every request is cryptographically verified for authenticity.
+3. **User Process Routing:**
+  The request is routed to the correct per-user GenServer, ensuring all operations for a user are serialized and race-free.
+4. **Transaction Processing:**
+  The transaction is validated, processed, and persisted atomically.
+5. **Response:**
+  The result is returned, with all error and success codes matching the Hub88 API spec.
+
+### Supervision & Data Flow Diagram
+
+> See `architecture.excalidraw.svg` for a visual overview of the supervision tree, process flow, and data flow.
+> The diagram legend explains the meaning of each color and shape.
+
+*For further details, see inline module and function documentation. The test suite includes integration, concurrency, and fault-tolerance tests that validate the system under real-world conditions.*
+
 Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the performance tests in `test/integration/fault_tolerance_test.exs` test for high loads, e.g. 5000 users. simultaneusly seeing crashes etc. Redudcing that number will speed up tests.
 
 ## API Contract Compliance
