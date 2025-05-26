@@ -67,12 +67,16 @@ For further clarifications, be in touch with the recruitment contact.
 ------
 
 # Elixir Developer Solution
+Thank you for considering my application. Since it wasnt clear initially whther the game code verification and signing was going to be considered when evaluating the assignemnt, I went ahead and wrote out a simple version of it. The signature verification part I had to use stackoverflow/google/chatgpt for as I didnt want to waste time on it after I heard from the recruiter that it wasnt critical to the assignemnt itself. There are tests written for it that should explain how it works.
+
+To run the tests: `mix test`
+
 Here is the architecture diagram `architecture.excalidraw.svg`
 ![Architecture Diagram](architecture.excalidraw.svg)
 
 ## Architecture Overview
 
-This project implements a robust, high-concurrency Wallet API for Hub88, using only Elixir/OTP primitives (no external dependencies or databases).
+This project implements the Wallet API for Hub88, using only Elixir/OTP primitives (no external dependencies or databases).
 
 ### System Architecture
 
