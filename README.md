@@ -101,11 +101,12 @@ This project implements a robust, high-concurrency Wallet API for Hub88, using o
 ### Supervision & Data Flow Diagram
 
 > See `architecture.excalidraw.svg` for a visual overview of the supervision tree, process flow, and data flow.
-> The diagram legend explains the meaning of each color and shape.
 
 *For further details, see inline module and function documentation. The test suite includes integration, concurrency, and fault-tolerance tests that validate the system under real-world conditions.*
 
-Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the performance tests in `test/integration/fault_tolerance_test.exs` test for high loads, e.g. 5000 users. simultaneusly seeing crashes etc. Redudcing that number will speed up tests.
+> Note: Tests could run slightly (7-8 seconds on my machine)slow, as some of the performance tests in
+> `test/integration/fault_tolerance_test.exs` test for high loads, e.g. 5000 users. simultaneusly seeing crashes etc. Redudcing that number will
+> speed up tests.
 
 
 ## Performance, Scalability & Concurrency
